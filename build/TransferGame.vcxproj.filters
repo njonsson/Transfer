@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\ActionHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\Bodies.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\Colors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\EventListenerHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\GravityForceCalculation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\RenderHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\RunGame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\UtilityHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\ActionHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\Bodies.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\Colors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\Constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\EventListenerHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\GameState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\GravityForceCalculation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\PhysicsStructures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\RenderHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\RunGame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\marco\Projects\TransferGame\Transfer\Transfer\UtilityHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\marco\Projects\TransferGame\Transfer\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{6FC2D0B2-A7AA-3AB9-A082-BA7A690F1492}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{6281F07F-6214-36DA-90B4-596F71687155}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

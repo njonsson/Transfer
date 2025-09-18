@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\marco\Projects\TransferGame\Transfer\build\CMakeFiles\dfb1903817b81d0ad259a1bd06476d71\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{326B908D-3920-37DC-B1DC-D5604A8C644E}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,3 @@
+C:/Users/marco/Projects/TransferGame/Transfer/build/CMakeFiles/TransferGame.dir
+C:/Users/marco/Projects/TransferGame/Transfer/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/marco/Projects/TransferGame/Transfer/build/CMakeFiles/ZERO_CHECK.dir

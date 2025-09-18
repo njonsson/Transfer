@@ -1,0 +1,11 @@
+CMake command, run any time we update file list
+cmake -S . -B build -DSDL3_DIR=C:/Users/marco/Projects/SDL3/cmake
+
+run after the first command to build the application.
+cmake --build build --config Debug
+
+This creates the executable file in cwd/build/Debug .exe
+
+The cmake also automatically copies the x64 SDL3.dll into the dir next to the executable
+
+Note that the build dir is for the cmake built version of the game, and the innards of Transfer contain the .sln which is the convenient MSVS version
