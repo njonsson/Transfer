@@ -1,0 +1,1 @@
+All fully capitalized methods are top level priority. Other camel case methods are lower level utility type functions.

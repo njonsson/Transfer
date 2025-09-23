@@ -13,4 +13,7 @@
 
 
 #include <iostream>
-void instantiateGravitationalBody(SDL_Renderer* renderer, const GravitationalBody& body);
+
+
+
+void slingShotGravitationalBody(SDL_Renderer* renderer, const GravitationalBody& body);

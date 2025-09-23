@@ -44,20 +44,19 @@ void applyGravitationalForceEffects(GravitationalBody& body1, GravitationalBody&
 
 	int distance = distanceBetweenBodies(body1, body2);
 	double measuredForce = calculateGravitationalForce(body1.mass, body2.mass, body1.radius, body2.radius, distance);
-	double timeInterval = 0.016; // seconds
 	double force_x = measuredForce* displacement_X / sqrt(distance);
 	double force_y = measuredForce* displacement_Y / sqrt(distance);
 	// apply to body 1
 	body1.netForce.f_x += force_x;
 	body1.netForce.f_y += force_y;
-	body1.netVelocity.v_x += ( force_x* timeInterval) / body1.mass;
-	body1.netVelocity.v_y += ( force_y* timeInterval) / body1.mass;
+	body1.netVelocity.v_x += ( force_x * TIME_STEP) / body1.mass;
+	body1.netVelocity.v_y += ( force_y * TIME_STEP) / body1.mass;
 
 	// apply to body 2
 	body2.netForce.f_x -= force_x; // equal and opposite force
 	body2.netForce.f_y -= force_y;
-	body2.netVelocity.v_x -= (force_x* timeInterval) / body2.mass;
-	body2.netVelocity.v_y -= (force_y* timeInterval) / body2.mass;	
+	body2.netVelocity.v_x -= (force_x* TIME_STEP) / body2.mass;
+	body2.netVelocity.v_y -= (force_y* TIME_STEP) / body2.mass;	
 }
 
 void applyGravityToSystem(std::vector<GravitationalBody>& bodies)

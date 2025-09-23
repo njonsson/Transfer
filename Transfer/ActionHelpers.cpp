@@ -1,7 +1,10 @@
 #include "ActionHelpers.h"
 
-void instantiateGravitationalBody(SDL_Renderer* renderer, const GravitationalBody& body)
+void slingShotGravitationalBody(SDL_Renderer* renderer, const GravitationalBody& body)
 {
-	Color color = GetColorForMass(body.mass);
-	renderCircle(renderer, body.x, body.y, body.radius, color);
+	// Draw a line from the center of the body to the mouse position
+	float mouseX, mouseY;
+	SDL_GetMouseState(&mouseX, &mouseY); // writes mouse xy pos.
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // white line
+
 }

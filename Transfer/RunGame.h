@@ -16,10 +16,6 @@
 #include <vector>
 
 
-//void PlayGame(GameState& state);
-//void StartGame();
-
-
 void PlayGame(GameState& state);
 void StartGame();
 void CheckBodyInstantiationValidity(GameState& state);
