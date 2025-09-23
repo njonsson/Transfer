@@ -55,24 +55,32 @@ void PlayGame(GameState& state)
 			state.selectedRadius = 0;
 			state.selectedMass = 0;
 		}
-		if (event.type == SDL_EVENT_KEY_DOWN && state.bodies.size() == 2) {
-			std::cout << "P key pressed. Swapping velocities of two bodies." << std::endl;
-			if (event.key.scancode == SDL_SCANCODE_P) {
-				// 1 to 2 vector 
-				double xvec = state.bodies[1].x - state.bodies[0].x;
-				double yvec = state.bodies[1].y - state.bodies[0].y;
-				state.bodies[0].netVelocity = { xvec,yvec };
-				state.bodies[1].netVelocity = { - xvec, -yvec };
-			}
-		}
+		//if (event.type == SDL_EVENT_KEY_DOWN && state.bodies.size() == 2) {
+		//	std::cout << "P key pressed. Swapping velocities of two bodies." << std::endl;
+		//	if (event.key.scancode == SDL_SCANCODE_P) {
+		//		// 1 to 2 vector 
+		//		double xvec = state.bodies[1].x - state.bodies[0].x;
+		//		double yvec = state.bodies[1].y - state.bodies[0].y;
+		//		state.bodies[0].netVelocity = { xvec,yvec };
+		//		state.bodies[1].netVelocity = { - xvec, -yvec };
+		//	}
+		//}
+		
 	}
-
-
-    // --- physics update should live here ---
-    for (auto& body : state.bodies) {
-        body.x += body.netVelocity.v_x * TIME_STEP;
-        body.y += body.netVelocity.v_y * TIME_STEP;
-    }
+	//std::cout << "Reached physics update step with " << state.bodies.size() << " bodies." << std::endl;
+	if (state.bodies.size() >= 2) {
+		// Debug: print out the net force on the first 
+		applyGravityToSystem(state.bodies);
+		//std::cout << "Force applied to first body" << state.bodies[0].netForce.f_x << "," << state.bodies[0].netForce.f_y << std::endl;
+		// velocities of first body
+		std::cout << "Velocity of first body" << state.bodies[0].netVelocity.v_x << "," << state.bodies[0].netVelocity.v_y << std::endl;
+		//// --- physics update should live here ---
+	for (auto& body : state.bodies) {
+	    body.x += body.netVelocity.v_x * TIME_STEP;
+	    body.y += body.netVelocity.v_y * TIME_STEP;
+	}
+	}
+    
 
     // Later: applyGravityToSystem(state.bodies);
 }

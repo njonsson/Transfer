@@ -1,7 +1,7 @@
 #include "GravityForceCalculation.h"
-
-// mass1 and mass2 in kg, radius1 and radius2 in meters, distance in meters, where distance is the distance between the centers of the two bodies
-double calculateGravitationalForce(int mass1, int mass2, int radius1, int radius2, int distance)
+// if km scale masses differently
+// mass1 and mass2 in kg, radius1 and radius2 in kilometers, distance in meters, where distance is the distance between the centers of the two bodies
+double calculateGravitationalForce(double mass1, double mass2, int radius1, int radius2, int distance)
 {
 	if (distance <= radius1 + radius2) {
 		return 0; // Avoid division by zero
@@ -39,20 +39,32 @@ void applyGravitationalForceEffects(GravitationalBody& body1, GravitationalBody&
 	// Will need to call all forces acting on a body and sum them to get net force.
 	// Apply the force. We will assume that we only have two bodies for now. We will limit the calculation to 62.5 Hz as well.
 	// F = m * a  -> a = F / m. We will apply the force over a time interval of 0.016 seconds (62.5 Hz). So the impulse applied is F*dt = m*dv -> dv = F*dt/m
-	double measuredForce_X = calculateGravitationalForce(body1.mass, body2.mass, body1.radius, body2.radius, displacement_X);
-	double measuredForce_Y = calculateGravitationalForce(body1.mass, body2.mass, body1.radius, body2.radius, displacement_Y);
+
+	// in order to correctly scale these, we must have the components scaled correctly x/sqrt(x^2+y^2) = cos(theta), y/sqrt(x^2+y^2) = sin(theta). So F cos(theta) = F * x/sqrt(x^2+y^2) and F sin(theta) = F * y/sqrt(x^2+y^2)
+
+	int distance = distanceBetweenBodies(body1, body2);
+	double measuredForce = calculateGravitationalForce(body1.mass, body2.mass, body1.radius, body2.radius, distance);
 	double timeInterval = 0.016; // seconds
+	double force_x = measuredForce* displacement_X / sqrt(distance);
+	double force_y = measuredForce* displacement_Y / sqrt(distance);
 	// apply to body 1
-	body1.netForce.f_x += measuredForce_X;
-	body1.netForce.f_y += measuredForce_Y;
-	body1.netVelocity.v_x += (measuredForce_X * timeInterval) / body1.mass;
-	body1.netVelocity.v_y += (measuredForce_Y * timeInterval) / body1.mass;
+	body1.netForce.f_x += force_x;
+	body1.netForce.f_y += force_y;
+	body1.netVelocity.v_x += ( force_x* timeInterval) / body1.mass;
+	body1.netVelocity.v_y += ( force_y* timeInterval) / body1.mass;
 
 	// apply to body 2
-	body2.netForce.f_x -= measuredForce_X; // equal and opposite force
-	body2.netForce.f_y -= measuredForce_Y;
-	body2.netVelocity.v_x -= (measuredForce_X * timeInterval) / body2.mass;
-	body2.netVelocity.v_y -= (measuredForce_Y * timeInterval) / body2.mass;	
+	body2.netForce.f_x -= force_x; // equal and opposite force
+	body2.netForce.f_y -= force_y;
+	body2.netVelocity.v_x -= (force_x* timeInterval) / body2.mass;
+	body2.netVelocity.v_y -= (force_y* timeInterval) / body2.mass;	
 }
 
-//void applyGravityToSystem();
+void applyGravityToSystem(std::vector<GravitationalBody>& bodies)
+{
+	for (size_t i = 0; i < bodies.size(); ++i) {
+		for (size_t j = i + 1; j < bodies.size(); ++j) {
+			applyGravitationalForceEffects(bodies[i], bodies[j]);
+		}
+	}
+}
