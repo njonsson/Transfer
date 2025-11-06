@@ -14,3 +14,8 @@ TBI will stand for To be implemented.
 add custom prints for physics structures
 
 test black/white holes. Should they inherit from grav body?
+
+
+Make scrolling functionality. Should allow smooth panning. Also a play pause to the physics. 
+
+Add animation for instantiation. Investigate bloom on stars? add grav body texture, small enough masses should be terrestrial, larges masses should be more beefy.

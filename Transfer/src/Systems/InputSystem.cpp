@@ -32,7 +32,7 @@ void InputSystem::ProcessSystemInputFrame(GameState& state)
                     float radius = 50.0;
                     newBody.setRadius(radius);
 
-                    double mass = MAX_MASS; // in kilograms
+                    double mass = MAX_MASS/5; // in kilograms
                     newBody.setMass(mass);
 
                     Vector2D bodyPosition = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }; // position measured in pixel xy coordinates measured from top-left corner.
