@@ -107,7 +107,7 @@ void RenderSystem::renderInputArtifacts(GameState& state)
 SDL_Color RenderSystem::getColorForMass(double mass)
 {
     // Simple mapping: lighter masses are blue, heavier masses are red
-    Uint8 r = static_cast<Uint8>(std::min(mass / 1e25 * 255, 255.0)); // assuming max mass of 1e25 for scaling
+    Uint8 r = static_cast<Uint8>(std::min((mass / MAX_MASS) * 255, 255.0)); // assuming max mass of 1e25 for scaling
     Uint8 g = 0;
     Uint8 b = static_cast<Uint8>(255 - r);
     Uint8 a = 255; // fully opaque

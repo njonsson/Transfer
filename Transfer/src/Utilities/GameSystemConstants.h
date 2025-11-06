@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr int TARGET_FPS = 100;
+constexpr int TARGET_FPS = 165;
 
 const double FRAME_DELAY_MS = 1000.0 / TARGET_FPS;
 

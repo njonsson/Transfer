@@ -7,6 +7,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <random>
+#include <numeric>
 
 // SDL3 Imports
 #include "SDL3/SDL.h"
@@ -17,6 +18,7 @@
 #include "Core/UIState.h"
 #include "Utilities/Colors.h"
 #include "Entities/TwinklingStars.h"
+#include "Utilities/EngineConstants.h"
 #include "Utilities/GameSystemConstants.h"
 
 // Circle (grav body) texture cache.
