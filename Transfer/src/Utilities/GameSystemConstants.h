@@ -10,4 +10,4 @@ constexpr int FPS_UPDATE_DELTA_MS = 250;
 constexpr int SCREEN_HEIGHT = 1080;
 constexpr int SCREEN_WIDTH = 1920;
 
-constexpr int STAR_NUM = 400;
+constexpr int STAR_NUM = 4000;
