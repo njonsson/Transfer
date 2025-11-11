@@ -1,7 +1,4 @@
 #include "Systems/RenderSystem.h"
-
-
-
 // Constructor: Initializes SDL Window and Renderer
 RenderSystem::RenderSystem()
 {
@@ -22,12 +19,15 @@ RenderSystem::RenderSystem()
         SDL_Log("Failed to initialize SDL_ttf: %s", SDL_GetError());
         return;
     }
-    
-    FPSFont = TTF_OpenFont("Assets/Fonts/SpaceMono-Bold.ttf", 18);
+    const char* basePath = SDL_GetBasePath(); // returns the folder where the executable lives
+    std::string fontPath = std::string(basePath) + "Assets/Fonts/SpaceMono-Bold.ttf";
+
+    FPSFont = TTF_OpenFont(fontPath.c_str(), 18);
     if (!FPSFont) {
         SDL_Log("Failed to load font: %s", SDL_GetError());
         return;
     }
+    // SDL_Log("Loaded font from path: %s", fontPath.c_str());
     createStarTextures();
     createStarField(STAR_NUM);   
 }
@@ -120,8 +120,6 @@ void RenderSystem::renderFrameRateCounter(float fps)
 {
     // Convert FPS to string
     std::string fpsText = "FPS: " + std::to_string(static_cast<int>(fps));
-
-    SDL_Color white = {255, 255, 255, 255};
     SDL_Surface* textSurface = TTF_RenderText_Blended(FPSFont, fpsText.c_str(), fpsText.length(), ColorLibrary::White);
     if (!textSurface) {
         SDL_Log("Text surface creation failed: %s", SDL_GetError());
@@ -129,14 +127,14 @@ void RenderSystem::renderFrameRateCounter(float fps)
     }
 
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    SDL_DestroySurface(textSurface);
     if (!textTexture) {
         SDL_Log("Text texture creation failed: %s", SDL_GetError());
         return;
     }
-
+    
     SDL_FRect dstRect = {10.0f, 10.0f, static_cast<float>(textSurface->w), static_cast<float>(textSurface->h)};
     SDL_RenderTexture(renderer, textTexture, nullptr, &dstRect);
+    SDL_DestroySurface(textSurface);
     SDL_DestroyTexture(textTexture);
 }
 
