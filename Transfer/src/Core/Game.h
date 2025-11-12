@@ -1,11 +1,6 @@
-// File: Game.h
+// File: Transfer/src/Core/Game.h
 
 #pragma once
-
-#include <numeric>
-
-// SDL3 Imports
-//#include <SDL3/SDL.h>
 
 // Custom Imports
 #include "Core/GameState.h"
@@ -16,6 +11,9 @@
 #include "Systems/UISystem.h"
 #include "Utilities/EngineConstants.h"
 #include "Utilities/GameSystemConstants.h"
+
+// Standard Library Imports
+#include <numeric>
 
 class Game
 {
@@ -46,7 +44,7 @@ class Game
 		GameState state;		     // Contains all game entities and their states
 		UIState UIState;             // Contains all UI related states
 		InputSystem inputSystem;     // Manages all user input
-		UISystem UISystem;         	 // Manages UI logic and state
+		// UISystem UISystem;         	 // Manages UI logic and state - now inside RenderSystem
 		PhysicsSystem physicsSystem; // Manages physics calculations and Frame Updates
 		RenderSystem renderSystem;	 // Manages all rendering operations
 };

@@ -1,3 +1,5 @@
+// File: Transfer/src/Systems/UISystem.cpp
+
 #include "UISystem.h"
 
 // Constructor
@@ -16,9 +18,10 @@ void UISystem::ProcessUIFrame(GameState& state, UIState& UIState)
     
 }
 
-void UISystem::RenderUIElements(SDL_Renderer* renderer, UIState& UIState)
+void UISystem::RenderUIElements(SDL_Renderer* renderer, UIState& UIState, TTF_Font* UIFont)
 {
-    for (auto& element : elements) {
-        element->renderElement(renderer);
+    std::vector<UIElement*> ui_elements = UIState.getUIElements();
+    for (auto& element : ui_elements) {
+        element->renderElement(renderer, UIState, UIFont); // Pass UIFont if needed
     }
 }   

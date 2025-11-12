@@ -1,3 +1,5 @@
+// File: Transfer/src/Core/UIState.cpp
+
 #include "UIState.h"
 
 UIState::UIState()
