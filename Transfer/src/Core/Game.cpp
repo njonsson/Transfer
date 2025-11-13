@@ -23,8 +23,20 @@ void Game::StartGame()
 	// Initialize any other useful state variables here.
 	state.SetPlaying(true);
 
+	// Initialize UI elements (like FPS counter) and other vars as we go.
+	renderSystem.getUISystem()->InitializeUIElements(UIState);
+
 	// Start the main game loop
 	Game::Run();
+}
+// Tears down the 'systems' and cleans up allocated resources.
+void Game::EndGame()
+{
+    // renderSystem.getUISystem()->DeleteUIElements(UIState);
+    renderSystem.getUISystem()->DeleteUIElements(UIState);
+    renderSystem.CleanUp();
+    physicsSystem.CleanUp();
+    inputSystem.CleanUp();
 }
 void Game::Run()
 {	

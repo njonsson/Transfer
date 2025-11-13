@@ -39,8 +39,6 @@ RenderSystem::RenderSystem()
 RenderSystem::~RenderSystem()
 {
 
-    clearCachedCircleTextures();
-
     if (renderer) {
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;
@@ -50,6 +48,11 @@ RenderSystem::~RenderSystem()
         window = nullptr;
     }
     // TTF_Quit(); // Handled at the Game level.
+}
+
+void RenderSystem::CleanUp()
+{
+    clearCachedCircleTextures();
 }
 
 // Top level rendering method, calls all subordinates in order
@@ -68,13 +71,9 @@ void RenderSystem::RenderFullFrame(GameState& state, UIState& UIState)
     // RenderSystem::renderInputArtifacts(state);
     // Add new rendering system functions later
 
-    // // Render FPS Counter if enabled
-    // if (UIState.getShowFPSCounter())
-    // {   
-    //     // renderFrameRateCounter(UIState.getFPS());
-    //     UISystem.
-    // }
+    // Render UI Elements
     uiSystem.RenderUIElements(renderer, UIState, UIFont);
+
     // Display the frame
     SDL_RenderPresent(renderer);
 }

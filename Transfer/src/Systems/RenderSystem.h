@@ -60,10 +60,11 @@ class RenderSystem
 		
 		// Main Loop Rendering Function, renders engine state and UI state
 		void RenderFullFrame(GameState& state, UIState& UIState);
-
+		void CleanUp(); 
 		// Getters for SDL Components
 		SDL_Renderer* getRenderer() const { return renderer; }
 		TTF_Font* getUIFont() const { return UIFont; }
+		UISystem* getUISystem() { return &uiSystem; }
 
 	private:
 		//SDL Components

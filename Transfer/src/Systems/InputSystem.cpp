@@ -11,6 +11,11 @@ InputSystem::~InputSystem()
 {
     // Cleanup if necessary
 }
+
+void InputSystem::CleanUp()
+{
+    // Any necessary cleanup code for the input system
+}
 void InputSystem::ProcessSystemInputFrame(GameState& state, UIState& UIState)
 {
     // Process input events and update the game state accordingly

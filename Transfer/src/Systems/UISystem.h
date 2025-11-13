@@ -9,6 +9,7 @@
 // Custom Imports
 #include "Core/GameState.h"
 #include "Core/UIState.h"
+#include "Entities/UIElement.h"
 
 // Handles Logic of UI Components
 class UISystem
@@ -20,6 +21,10 @@ class UISystem
         void ProcessUIFrame(GameState& state, UIState& UIState);
 
         void RenderUIElements(SDL_Renderer* renderer, UIState& UIState, TTF_Font* UIFont);
+        
+        void InitializeUIElements(UIState& UIState);
+        
+        void DeleteUIElements(UIState& UIState);
     private:
         // Add UI system members and methods here
 };

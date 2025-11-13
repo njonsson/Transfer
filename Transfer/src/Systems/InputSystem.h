@@ -22,6 +22,8 @@ class InputSystem
         // Methods to process input
         void ProcessSystemInputFrame(GameState& state, UIState& UIState);
 
+        void CleanUp();
+
     private:
         // Internal state variables for input handling can be added here
     

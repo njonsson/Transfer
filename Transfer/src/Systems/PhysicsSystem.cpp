@@ -11,7 +11,10 @@ PhysicsSystem::~PhysicsSystem()
 {
     // Cleanup if necessary
 }
-
+void PhysicsSystem::CleanUp()
+{
+    // Any necessary cleanup code for the physics system
+}
 void PhysicsSystem::UpdateSystemFrame(GameState& state)
 {
     // Update physics calculations for all entities in the game state

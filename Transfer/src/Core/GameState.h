@@ -2,11 +2,12 @@
 
 #pragma once
 
-// Standard Library Imports
-#include <vector>
 
 // Custom Imports
 #include "Entities/GravitationalBody.h"
+
+// Standard Library Imports
+#include <vector>
 
 struct InputState
 {

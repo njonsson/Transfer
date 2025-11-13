@@ -22,6 +22,7 @@ class PhysicsSystem
 
     public:
         // Methods to update physics. Essentially integrates one physics frame worth of information
+        void CleanUp();
         void UpdateSystemFrame(GameState& state);
 
     private:
