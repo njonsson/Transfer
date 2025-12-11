@@ -4,6 +4,7 @@
 
 // Custom Imports
 #include "Core/GameState.h"
+#include "Core/UIState.h"
 #include "Utilities/EngineConstants.h"
 #include "Utilities/GameSystemConstants.h"
 #include "Entities/GravitationalBody.h"
@@ -26,33 +27,34 @@ class PhysicsSystem
     public:
         // Methods to update physics. Essentially integrates one physics frame worth of information
         void CleanUp();
-        void UpdateSystemFrame(GameState& state);
+        void UpdateSystemFrame(GameState& state, UIState& UIState);
 
     private:
         // Internal state variables for physics calculations can be added here
 
-        // Function to calculate the resultant force vectors between two bodies
-        void calculateGravForceBetweenBodies(GravitationalBody& bodyA, GravitationalBody& bodyB);
-        void integrateForwards(GravitationalBody& body);
-        void updateBoundingBox(GravitationalBody& body);
+        void calculateGravForceBetweenParticles(Particle& particleA, Particle& particleB);
+        void applyInterClusterGravity(GameState& state);
+
+        void integrateParticleForwards(Particle& particle);
+        void integrateParticleVelocityVerlet(Particle& p);
+        void integrateParticleLeapfrog(Particle& p);
+
         
         // Top-level collision handling
         void handleCollisions(GameState& state);
         
-        // Simple Collision handling helpers
-        void handleElasticCollision(GravitationalBody& bodyA, GravitationalBody& bodyB);
+        void handleElasticParticleCollision(Particle& particleA, Particle& particleB);
         
-        // Collision handling helpers
-        // void handleDynamicCollision(GravitationalBody& bodyA, GravitationalBody& bodyB, GameState& state, std::vector<GravitationalBody>& newFragments);
-        void handleDynamicCollision(GravitationalBody& bodyA, GravitationalBody& bodyB, GameState& state);
-        // bool isOverlappingAny(const GravitationalBody& bodyA, const GameState& state);
 
         std::vector<double> generateRandomFragmentMasses(double totalMass, int numFragments);
-        // void resolvePenetration(GravitationalBody& bodyA, GravitationalBody& bodyB);
+
         Vector2D randomDirectionVector();
 
         // Helper to make sure we don't kill performance with too many bodies.
         void manageLoad(GameState& state);
 
-        // void handleAccretion(GravitationalBody& smallerM, GravitationalBody& largerM );
+
+        void createNewGravitationalCluster(UIState& UIState, GameState& state);
+        void recomputeClusterProperties(GameState& state, int clusterIndex);
+
 };

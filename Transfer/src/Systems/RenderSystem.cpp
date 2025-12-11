@@ -64,7 +64,8 @@ void RenderSystem::RenderFullFrame(GameState& state, UIState& UIState)
     // render starry background
     updateStars();
     renderStars();
-    // Render all the bodies
+
+    // Render all the bodies (particles)
     RenderSystem::renderBodies(state);
 
     // Render any input artifacts (like drag lines) TBI
@@ -82,23 +83,24 @@ void RenderSystem::RenderFullFrame(GameState& state, UIState& UIState)
 void RenderSystem::renderBodies(GameState& state)
 {
     float alpha = state.getAlpha();
-    for (auto& body : state.getBodies()) {
-        SDL_Color color = getColorForMass(body.getMass());
-        SDL_Texture* tex = getCircleTexture(body.getRadius(), color);
-        Vector2D currPosition = body.getPosition();
-        Vector2D prevPosition = body.getPrevPosition();
+    for (auto& particle : state.getParticles()) {
+        SDL_Color color = getColorForMass(particle.mass);
+        SDL_Texture* tex = getCircleTexture(static_cast<int>(particle.radius), color);
+        Vector2D currPosition = particle.position;
+        Vector2D prevPosition = particle.prevPosition;
         float renderX = prevPosition.x_val * (1.0f - alpha) + currPosition.x_val * alpha;
         float renderY = prevPosition.y_val * (1.0f - alpha) + currPosition.y_val * alpha;
 
         SDL_FRect dstRect = {
-            renderX - body.getRadius(),
-            renderY - body.getRadius(),
-            body.getRadius() * 2,
-            body.getRadius() * 2
+            renderX - particle.radius,
+            renderY - particle.radius,
+            particle.radius * 2,
+            particle.radius * 2
         };
 
         SDL_RenderTexture(renderer, tex, nullptr, &dstRect);
     }
+    
 }
 
 // Renders user input artifacts like drag lines. TBI

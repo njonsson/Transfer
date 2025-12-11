@@ -37,4 +37,7 @@ class InputSystem
         // void handleMouseMotionEvent(SDL_Event& event, UIState& UIState); // For panning -- probably combine with shift + mouse click in order to differentiate from mass instantiation.
         void handleMassSliderInput(SDL_Event& event, UIState& UIState);
 
+
+        // void createNewGravitationalCluster(SDL_Event& event, GameState& state);
+
 };

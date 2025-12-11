@@ -33,13 +33,15 @@ class UIState
 
         bool getShowFPSCounter() const { return showFPSCounter; }
         void setShowFPSCounter(bool show) { showFPSCounter = show; }
+
+        InputState& getMutableInputState() { return inputState; }
+        const InputState& getInputState() const { return inputState; }
     private:
         // FPS counter state
         float fps = 0.0f;
         bool showFPSCounter = false;
         // Input state for UI interactions
         InputState inputState;
-
         // Collection of UI elements
         std::vector<UIElement*> elements;
 };

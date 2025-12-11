@@ -39,6 +39,27 @@ class GameState
         void addBody(const GravitationalBody& body) { bodies.push_back(body); }
         void clearBodies() { bodies.clear(); }
 
+
+
+        const std::vector<Particle>& getParticles() const {return particles;}
+        std::vector<Particle>& getParticlesMutable() {return particles;}
+        // void addParticle(const Particle& p) {particles.push_back(p);}
+        // void clearParticles() {particles.clear();}
+        // const std::vector<GravitationalCluster>& getClusters() const {return clusters;}
+        std::vector<GravitationalCluster>& getClustersMutable() {return clusters;}
+        // void addCluster(const GravitationalCluster& c) {clusters.push_back(c);}
+        // void clearClusters() {clusters.clear();}
+
+        int addCluster(const GravitationalCluster& c) {
+            clusters.push_back(c);
+            return static_cast<int>(clusters.size()) - 1; // return index of newly added cluster
+        }
+        int addParticle(const Particle& p) {
+            particles.push_back(p);
+            return static_cast<int>(particles.size()) - 1; // return index of newly added particle
+        }
+
+
         float getAlpha() const {return alpha;}
         void setAlpha(float alphaIn) {alpha = alphaIn;}
 
@@ -47,6 +68,8 @@ class GameState
 
         // bool getToggleSlow() const {return toggleSlow;}
         void invertToggleSlow() {toggleSlow = !toggleSlow;}
+
+
     private:
         // State variables
         bool isPlaying = false;
@@ -59,5 +82,11 @@ class GameState
         bool toggleSlow = false; // default to false for regular speed
         // Collection of bodies in the game 
         std::vector<GravitationalBody> bodies; 
+
+
+
+        // New particle shit
+        std::vector<Particle> particles; // All particles in the sim
+        std::vector<GravitationalCluster> clusters; // All clusters in the sim
 };
 

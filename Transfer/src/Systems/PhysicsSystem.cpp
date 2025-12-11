@@ -15,47 +15,54 @@ void PhysicsSystem::CleanUp()
 {
     // Any necessary cleanup code for the physics system
 }
-void PhysicsSystem::UpdateSystemFrame(GameState& state)
+
+void PhysicsSystem::UpdateSystemFrame(GameState& state, UIState& UIState)
 {
-    // Update physics calculations for all entities in the game state
-
-    // Extract body vector as modifiable
-    std::vector<GravitationalBody>& bodies = state.getBodiesMutable();
-
-    // 1) Reset net forces for everyone at frame start
-    for (size_t i = 0; i < bodies.size(); ++i) {
-        bodies[i].setNetForce(Vector2D(0.0, 0.0));
+    // ... (Cluster creation remains the same)
+    if (UIState.getInputState().dirty) {
+        createNewGravitationalCluster(UIState, state);
     }
 
-    // Calculate Gravity pairwise
-	for (size_t i = 0; i < bodies.size(); ++i) {
-		for (size_t j = i + 1; j < bodies.size(); ++j) {
-            calculateGravForceBetweenBodies(bodies[i], bodies[j]);
-		}
-	}
+    std::vector<Particle>& particles = state.getParticlesMutable();
+// 1) LEAPFROG VELOCITY HALF-STEP COMPLETION (v_n)
+    // This completes the velocity update v_n = v_{n-1/2} + 0.5 * a_{n-1} * dt
+    // using the acceleration a_{n-1} stored in p.prevForce from the last frame.
+    for (Particle& p : particles) {
+        if (p.mass != 0) {
+            Vector2D acc_prev = p.prevForce / p.mass;
+            p.velocity += acc_prev * 0.5 * PHYSICS_TIME_STEP; // v_n is now accurate
+        }
+    } // CRITICAL: After this, p.velocity contains v_n
 
-
-    // integrate the system forward after all the resultant forces are calculated 
-    for (size_t i = 0; i < bodies.size(); ++i){
-        integrateForwards(bodies[i]);
+    // 2) Reset net forces for everyone at frame start (FOR F_n CALCULATION)
+    // ... (body reset omitted)
+    for (Particle& p : particles) {
+        p.netForce = Vector2D(0.0, 0.0); // Reset particle net force
     }
 
-    // if (bodies.size() >= 2){
-    //     // Move cursor up 5 lines, clear those lines, print
-    //     // std::cout << "\033[11A\033[J" << "\nBody 0 status\n" << bodies[0] << std::flush;
-    //     // std::cout << "\033[1A\033[J" <<" Body 0 speed: " << bodies[0].getNetVelocity().magnitude() << std::flush;
-    //     std::cout << "\r\033[K" << "Body 0: speed=" << bodies[0].getNetVelocity().magnitude() << std::flush;
-    // }   
-    // for (auto& b : bodies){
-        //     b.updateGhostState();
-    // }
-        
-    // handle collisions and update velocities of anything detected as colliding. later
+    // 3) Calculate Gravity pairwise (Computes F_n using r_n)
+    // ... (Force calculations, including inter-particle and inter-cluster)
+    // CRITICAL: After these calls, p.netForce contains F_n
+    int size = particles.size();
+    for (size_t i = 0; i < size; ++i) {
+        for (size_t j = i + 1; j < size; ++j) {
+            calculateGravForceBetweenParticles(particles[i], particles[j]);
+        }
+    }
+    // applyInterClusterGravity(state); // NEED TO REWRITE
+    // 4) Integrate the system forward (Updates r_{n+1} and v_{n+1/2})
+    for (Particle& p : particles) {
+        // Use the current F_n to move position to r_{n+1} and velocity to v_{n+1/2}
+        integrateParticleLeapfrog(p); 
+    }
+    
+    // NOTE: In the *next* frame, the final force F_{n+1} will be calculated
+    // using the new position r_{n+1}, and then Step 1 will complete the velocity
+    // update to v_{n+1} = v_{n+1/2} + 0.5 * a_{n+1} * dt
+    // ... (Debugging/collision/load management remain the same)
     handleCollisions(state);
-
     manageLoad(state);
 }
-
 void PhysicsSystem::manageLoad(GameState& state)
 {
     std::vector<GravitationalBody>& bodies = state.getBodiesMutable();
@@ -78,357 +85,206 @@ void PhysicsSystem::manageLoad(GameState& state)
     bodies.erase(bodies.begin() + keep, bodies.end());
 }
 
-void PhysicsSystem::integrateForwards(GravitationalBody& body )
+
+void PhysicsSystem::integrateParticleForwards(Particle& p )
 {
     
     // F = m a = m dv/dt. F*dt/m = dv. v_new = v + dv. v_new * dt = dx
-    Vector2D currentVel = body.getNetVelocity();
-    Vector2D currentPos = body.getPosition();
-    Vector2D currentForce = body.getNetForce();
+    Vector2D currentVel = p.velocity;
+    Vector2D currentPos = p.position;
+    Vector2D currentForce = p.netForce;
 
-    body.setPrevPosition(currentPos);
+    p.prevPosition = currentPos;
     Vector2D dv = Vector2D();
-    if (body.getMass() != 0)
+    if (p.mass != 0)
         {
-            dv = currentForce * PHYSICS_TIME_STEP / body.getMass();
+            dv = currentForce * PHYSICS_TIME_STEP / p.mass;
         }
     currentVel += dv;
     currentPos += currentVel * PHYSICS_TIME_STEP;
-    body.setPosition(currentPos);
-    body.setNetVelocity(currentVel);
+    p.position = currentPos;
+    p.velocity = currentVel;
 
-    // Make call to update the bounding box for the body
-    updateBoundingBox(body);
+    // Make call to update the bounding box for the p
+    // updateBoundingBox(p);
+}
+void PhysicsSystem::integrateParticleVelocityVerlet(Particle& p)
+{
+    // 1. Calculate the acceleration *at the start of the frame* (F_n)
+    // You are storing the net force from the *previous* frame in p.prevForce.
+    // The force calculated *this* frame is in p.netForce (F_n).
+    Vector2D acc_n = p.netForce / p.mass;
+
+    // 2. Save F_n and update position (r_{n+1})
+    p.prevForce = p.netForce; // Save F_n for the velocity update later
+
+    p.prevPosition = p.position;
+    p.position += p.velocity * PHYSICS_TIME_STEP + acc_n * 0.5 * PHYSICS_TIME_STEP * PHYSICS_TIME_STEP;
+
+    // 3. The new force F_{n+1} must be calculated *after* this position update.
+    // In your current structure, this happens in the *next* frame's force calculation loop.
+    // The Velocity update (v_{n+1}) must be deferred until the next frame, or you need to
+    // restructure the Update loop to calculate F_{n+1} for all particles immediately after
+    // calculating r_{n+1}.
+
+    // Since your UpdateSystemFrame is structured (Force Calc -> Integrate), you must
+    // implement the half-step of the velocity update here.
+
+    // Half-step velocity update (v_{n+1/2}):
+    p.velocity += acc_n * 0.5 * PHYSICS_TIME_STEP;
+    
+    // 4. Reset netForce for next frame's force accumulation (which will be F_{n+1})
+    p.netForce = Vector2D(0.0, 0.0); // Reset for the next frame's force calculation
 }
 
-void PhysicsSystem::calculateGravForceBetweenBodies(GravitationalBody& bodyA, GravitationalBody& bodyB)
+// REPLACE the implementation of the existing integrateParticleLeapfrog
+void PhysicsSystem::integrateParticleLeapfrog(Particle& p)
 {
-    // Calculate gravitational force between bodyA and bodyB
-    double massA = bodyA.getMass();
-    double massB = bodyB.getMass();
+    if (p.mass == 0) return;
+    double dt = PHYSICS_TIME_STEP;
+    
+    // F_n is currently in p.netForce, calculated using r_n
+    Vector2D acc_n = p.netForce / p.mass; 
+    
+    // --- STEP 1: Half-Step Velocity (v_{n+1/2}) ---
+    // Update velocity using the acceleration calculated this frame (a_n)
+    // v_{n+1/2} = v_n + 0.5 * a_n * dt
+    p.velocity += acc_n * 0.5 * dt;
 
-    // Find distance between bodies
-    Vector2D posA = bodyA.getPosition();
-    Vector2D posB = bodyB.getPosition();
+    // --- STEP 2: Position Update (r_{n+1}) ---
+    // Update position using the intermediate velocity v_{n+1/2}
+    // r_{n+1} = r_n + v_{n+1/2} * dt
+    p.prevPosition = p.position; // Save r_n
+    p.position += p.velocity * dt; // Update to r_{n+1}
+    
+    // --- STEP 3: Store Force ---
+    // Store F_n for the next frame's completion step (Step 1 of next frame)
+    p.prevForce = p.netForce; 
+    
+    // p.netForce will be reset at the start of the next UpdateSystemFrame.
+}
+void PhysicsSystem::calculateGravForceBetweenParticles(Particle& particleA, Particle& particleB)
+{
+    double massA = particleA.mass;
+    double massB = particleB.mass;
+    Vector2D posA = particleA.position;
+    Vector2D posB = particleB.position;
     Vector2D deltaDisp = posB - posA;
-    double distance = deltaDisp.magnitude();
-    double minDistance = bodyA.getRadius() + bodyB.getRadius();
+    double distSqr = deltaDisp.square_magnitude();
 
-    if (distance > minDistance){ 
-        // sin(theta),cos(theta) unit vector
-        Vector2D trigUnitVectors = deltaDisp.normalize();
-        double force_magnitude = GRAVITATIONAL_CONSTANT * massA * massB / deltaDisp.square_magnitude();
-        Vector2D force_B_on_A = Vector2D(force_magnitude * trigUnitVectors.x_val, force_magnitude * trigUnitVectors.y_val);
-        // Newton's Third Law
-        Vector2D force_A_on_B = force_B_on_A * (-1.0);
-        bodyA.addNetForce(force_B_on_A);
-        bodyB.addNetForce(force_A_on_B);
-    }
-    else{
-        return;
-    }
+    // CRITICAL FIX: Use a small, constant softening parameter (EPSILON)
+    // This is the core fix to prevent singularities (instability) when r -> 0.
+    // A value of 0.01 to 1.0 is common, depending on coordinate scaling.
+    const double EPSILON = 0.9; // TUNEABLE: Adjust this value
+    const double EPSILON_SQR = EPSILON * EPSILON;
+    
+    double effective_dist_sqr = distSqr + EPSILON_SQR;
+    
+    if (effective_dist_sqr < 1e-12) return; 
+
+    // Calculate the force direction (unit vector)
+    Vector2D trigUnitVectors = deltaDisp.normalize();
+
+    // Compute the gravitational force magnitude
+    // F = G * m1 * m2 / (r^2 + epsilon^2)
+    double force_magnitude = GRAVITATIONAL_CONSTANT * massA * massB / effective_dist_sqr;
+    
+    // F_B_on_A is the force vector on A due to B (points toward B, so along deltaDisp)
+    Vector2D force_B_on_A = trigUnitVectors * force_magnitude; 
+    
+    Vector2D force_A_on_B = force_B_on_A * (-1.0);
+    
+    // Accumulate the net forces
+    particleA.netForce += force_B_on_A;
+    particleB.netForce += force_A_on_B;
+
+    // The function MUST NOT include the 'if (distance > minDistance)' check.
 }
 
+void PhysicsSystem::applyInterClusterGravity(GameState& state) {
+    auto& clusters = state.getClustersMutable();
+    const double G = GRAVITATIONAL_CONSTANT;
 
-// MINE
+    // 0) Recompute COMs for this frame
+    for (size_t ci = 0; ci < clusters.size(); ++ci) {
+        recomputeClusterProperties(state, ci);
+    }
+
+    // 1) Loop over all cluster pairs
+    for (size_t i = 0; i < clusters.size(); ++i) {
+        for (size_t j = i + 1; j < clusters.size(); ++j) {
+            auto& clusterA = clusters[i];
+            auto& clusterB = clusters[j];
+
+            Vector2D delta = clusterB.centerOfMassPos - clusterA.centerOfMassPos;
+            double distSqr = delta.square_magnitude();
+            double dist = sqrt(distSqr);
+
+            if (dist < 1e-6) continue; // Avoid divide by zero
+
+            Vector2D direction = delta / dist; // normalized
+
+            // Compute the gravitational force magnitude
+            double forceMag = G * clusterA.totalMass * clusterB.totalMass / distSqr;
+            Vector2D forceOnA = direction * forceMag;  // Force on cluster A
+            Vector2D forceOnB = forceOnA * (-1.0);     // Newton's 3rd law
+
+            // --- NEW: Apply at COM level ---
+            Vector2D accA = forceOnA / clusterA.totalMass;
+            Vector2D accB = forceOnB / clusterB.totalMass;
+
+            for (int pIndex : clusterA.clusterParticleIndices) {
+                Particle& p = state.getParticlesMutable()[pIndex];
+                // Convert acceleration back to force F = ma, or just use forceOnA/totalMass * p.mass
+                // Or simply: F = m*a
+                Vector2D force_on_particle = accA * p.mass;
+                p.netForce += force_on_particle; 
+                
+                // --- OLD: Remove this line entirely ---
+                // p.velocity += accA * PHYSICS_TIME_STEP;
+                // --- END OLD ---
+            }
+            for (int pIndex : clusterB.clusterParticleIndices) {
+                Particle& p = state.getParticlesMutable()[pIndex];
+                Vector2D force_on_particle = accB * p.mass;
+                p.netForce += force_on_particle;
+
+                // --- OLD: Remove this line entirely ---
+                // p.velocity += accB * PHYSICS_TIME_STEP;
+                // --- END OLD ---
+            }
+        }
+    }
+}
 void PhysicsSystem::handleCollisions(GameState& state)
-{
-    std::vector<GravitationalBody>& bodies = state.getBodiesMutable();
-    int size = state.getBodies().size();
+{   
+    std::vector<Particle>& particles = state.getParticlesMutable();
+    int size = state.getParticles().size();
 
     for (size_t i = 0; i < size; ++i) {
         for (size_t j = i + 1; j < size; ++j) {
 
-            GravitationalBody& bodyA = bodies[i];
-            GravitationalBody& bodyB = bodies[j];
-
-            
-            // Skip deleted bodies
-            if (bodyA.getMarkedForDeletion() || bodyB.getMarkedForDeletion()){
-                continue;
-            }
-            // // Skip if collision is disabled on either body
-            if (!bodyA.getCollisionEnabled() || !bodyB.getCollisionEnabled())
-                continue;
-
-            // Check bounding boxes to reduce search space. If bounding boxes don't overlap, don't even bother. Bounding box method limited if extreme acceleration is in play.
-            if (!bodyA.getBoundingBox().overlaps(bodyB.getBoundingBox()))
-                continue; // skip
-
-
-            // Actually deal with the collisions
-            
-            // Precise circle check (may include real overlap in case of clicking too close, which results in accretion or correction of positions)
-            Vector2D direction_vector = bodyB.getPosition() - bodyA.getPosition();
-            double dist = direction_vector.magnitude();
-            double min_distance = bodyA.getRadius() + bodyB.getRadius();
-            
-            // Identify the smaller and larger body radius-wise
-            // GravitationalBody* smallerR_body;
-            // GravitationalBody* largerR_body;
-
-            // // Identify the smaller and larger body mass-wise
-            // GravitationalBody* smallerM_body;
-            // GravitationalBody* largerM_body;
-
-            // if (bodyA.getRadius() < bodyB.getRadius()) {
-            //     smallerR_body = &bodyA;
-            //     largerR_body  = &bodyB;
-            // } else {
-            //     smallerR_body = &bodyB;
-            //     largerR_body  = &bodyA;
-            // }
-            
-            // if (bodyA.getMass() < bodyB.getMass()) {
-            //     smallerM_body = &bodyA;
-            //     largerM_body  = &bodyB;
-            // } else {
-            //     smallerM_body = &bodyB;
-            //     largerM_body  = &bodyA;
-            // }
-            // double mass_ratio = largerM_body->getMass() / smallerM_body->getMass();
-
-            if (dist < min_distance && dist > 0.0) {
-                double relativeSpeed = (bodyA.getNetVelocity() - bodyB.getNetVelocity()).magnitude();
-                
-                
-                
-                if (relativeSpeed < MAX_ELASTIC_COLLISION_SPEED){
-                    handleElasticCollision(bodyA, bodyB);
-                }
-                else{
-                    handleDynamicCollision(bodyA, bodyB, state);
-                    handleElasticCollision(bodyA, bodyB);
-                }
-            }
+            Particle& particleA = particles[i];
+            Particle& particleB = particles[j];
+            handleElasticParticleCollision(particleA, particleB);
         }
     }
-    bodies.erase(
-        std::remove_if(bodies.begin(), bodies.end(),
-                    [](const GravitationalBody& b){ return b.getMarkedForDeletion(); }),
-        bodies.end()
-    );
-
 }
 
 
-
-void PhysicsSystem::handleDynamicCollision(GravitationalBody& bodyA, GravitationalBody& bodyB, GameState& state)
+void PhysicsSystem::handleElasticParticleCollision(Particle& A, Particle& B)
 {
-    // --- 1. Extract Initial State and Define Target Momentum ---    
-    double mA = bodyA.getMass();
-    double mB = bodyB.getMass();
-    Vector2D vA = bodyA.getNetVelocity();
-    Vector2D vB = bodyB.getNetVelocity();
-    
-    // Calculate total mass
-    double M = mA + mB;
-
-    // Calculate the total system momentum (MUST BE CONSERVED)
-    Vector2D P_initial = vA * mA + vB * mB;
-
-    // Calculate the velocity of the Center of Mass (CoM). 
-    // This is the target base velocity for all fragments.
-    Vector2D V_CoM = P_initial / M;
-    
-    // Calculate the initial kinetic energy of the system for reference (used later to size the fragments/scatter)
-    // The relative velocity determines the intensity of the fragmentation.
-    Vector2D deltaV = vA - vB;
-    double relativeSpeed = deltaV.magnitude();
-
-
-    // --- 2. Determine Fragmentation Outcome and Generate Fragment Masses ---
-
-    // Define tuneable constants for fragmentation
-    const double FRAGMENTATION_RATIO = 5.0; // If mass ratio exceeds this, only the smaller body fragments.
-    const int MIN_FRAGMENTS = 8;
-    const int MAX_FRAGMENTS = 16;
-    
-    // Pointers for clarity
-    GravitationalBody* smallerM_body = (mA < mB) ? &bodyA : &bodyB;
-    GravitationalBody* largerM_body = (mA < mB) ? &bodyB : &bodyA;
-    double mass_ratio = largerM_body->getMass() / smallerM_body->getMass();
-    
-    // Vectors to hold fragment mass data
-    std::vector<double> fragmentsA_masses;
-    std::vector<double> fragmentsB_masses;
-    
-    // --- Case 1: Both Bodies Break (Masses are similar) ---
-    if (mass_ratio <= FRAGMENTATION_RATIO) {
-        // Break both bodies
-        int numFragsA = MIN_FRAGMENTS + (rand() % (MAX_FRAGMENTS - MIN_FRAGMENTS + 1));
-        int numFragsB = MIN_FRAGMENTS + (rand() % (MAX_FRAGMENTS - MIN_FRAGMENTS + 1));
-        
-        fragmentsA_masses = generateRandomFragmentMasses(mA, numFragsA);
-        fragmentsB_masses = generateRandomFragmentMasses(mB, numFragsB);
-        
-        // Mark both original bodies for deletion
-        bodyA.setMarkedForDeletion(true);
-        bodyB.setMarkedForDeletion(true);
-    }
-    // --- Case 2: Only Smaller Body Breaks (Mass ratio is high) ---
-    else {
-        // Only the smaller body fragments, the larger body absorbs the impact (and survives)
-        double smallerMass = smallerM_body->getMass();
-        int numFrags = MIN_FRAGMENTS + (rand() % (MAX_FRAGMENTS - MIN_FRAGMENTS + 1));
-        
-        // Determine which vector to populate based on which body is smaller
-        if (smallerM_body == &bodyA) {
-             fragmentsA_masses = generateRandomFragmentMasses(smallerMass, numFrags);
-        } else {
-             fragmentsB_masses = generateRandomFragmentMasses(smallerMass, numFrags);
-        }
-        
-        // Mark only the smaller original body for deletion
-        smallerM_body->setMarkedForDeletion(true);
-        
-        // The larger body (largerM_body) survives, but we must update its velocity 
-        // to reflect the momentum it absorbed from the smaller body.
-        // It now inherits the V_CoM of the entire system (the simplest approach).
-        largerM_body->setNetVelocity(V_CoM); 
-    }
-
-    // Helper: produce fragments for one body and return them
-    auto makeFragments = [&](GravitationalBody& sourceBody, GravitationalBody& nonSourceBody, std::vector<double>& masses)
-        {
-            std::vector<GravitationalBody> frags;
-            if (masses.empty()) return frags;
-
-            // Vector2D collisionCenter = (bodyA.getPosition() * mA + bodyB.getPosition() * mB) / M;
-            Vector2D direction = (sourceBody.getPosition() - nonSourceBody.getPosition()).normalize();
-            Vector2D scaledDirection = direction * nonSourceBody.getRadius();
-            Vector2D collisionPoint = nonSourceBody.getPosition() + scaledDirection;
-            Vector2D sourcePos = sourceBody.getPosition();
-            double sourceRadius = sourceBody.getRadius();
-
-            // Tuneable: The distance fragments scatter *from the collision center*
-            const double INITIAL_SCATTER_DISTANCE = sourceRadius * 0.75; 
-            
-            for (double fMass : masses)
-            {
-                GravitationalBody frag;
-                frag.setMass(fMass);
-
-                // Radius scales with M^(1/3)
-                frag.setRadius(sourceRadius * std::pow(fMass / sourceBody.getMass(), 1.0/3.0));
-                
-                // Initial position: Scatter fragments from the collision center in a random direction
-                // The position is CRUCIAL for stability; they must not overlap immediately.
-                Vector2D scatterDir = randomDirectionVector();
-                frag.setPosition(collisionPoint + scatterDir * INITIAL_SCATTER_DISTANCE);
-                frag.setPrevPosition(frag.getPosition());
-
-                // Base Velocity: All fragments start with the system's CoM velocity
-                frag.setNetVelocity(V_CoM); 
-
-                // Set flags
-                frag.setIsFragment(true);
-
-                frag.setCollisionEnabled(false);
-                
-                // Bounding box update is needed right away
-                // We'll update the bounding box and then later apply the final scatter velocity
-                // to ensure the BBox is large enough.
-                // updateBoundingBox(frag); // Let's skip BBox update until after the final scatter velocity is applied
-
-                frags.push_back(frag);
-            }
-            return frags;
-    };
-    // Instantiate all fragments
-    std::vector<GravitationalBody> allFragments;
-    
-    if (!fragmentsA_masses.empty()) {
-        auto fragsA = makeFragments(bodyA, bodyB, fragmentsA_masses);
-        allFragments.insert(allFragments.end(), fragsA.begin(), fragsA.end());
-    }
-    if (!fragmentsB_masses.empty()) {
-        auto fragsB = makeFragments(bodyB, bodyA, fragmentsB_masses);
-        allFragments.insert(allFragments.end(), fragsB.begin(), fragsB.end());
-    }
-    // --- 4. Apply Impact-Driven Scatter Velocity ---
-    
-    // TUNEABLE: Controls the intensity of the scatter (e.g., 0.1 to 0.5)
-    // Higher K means fragments fly apart faster after impact.
-    const double FRAGMENTATION_COEFFICIENT = 0.3; 
-    
-    // Scatter magnitude is proportional to the relative impact speed
-    double scatterMagnitude = relativeSpeed * FRAGMENTATION_COEFFICIENT;
-    
-    Vector2D collisionCenter = (bodyA.getPosition() * mA + bodyB.getPosition() * mB) / M;
-
-    for (auto& frag : allFragments)
-    {
-        // 1. Get the direction from the collision center (C) to the fragment's position (P_frag)
-        Vector2D direction_to_fragment = frag.getPosition() - collisionCenter;
-        
-        // 2. Normalize the direction vector
-        Vector2D scatterDir = direction_to_fragment.normalize();
-        
-        // 3. Calculate the scatter velocity vector
-        Vector2D scatterVel = scatterDir * scatterMagnitude;
-        
-        // 4. Add the scatter velocity to the fragment's base velocity (V_CoM)
-        frag.setNetVelocity(frag.getNetVelocity() + scatterVel);
-        
-        // NOTE: The total system momentum is now slightly incorrect due to randomization 
-        // in initial fragment positions and the fragmentation process. This is fixed next.
-    }
-    // --- 5. Final Momentum Correction and Stability Setup ---
-    
-    // 5a. Calculate Raw Momentum of Fragments
-    Vector2D P_raw(0.0, 0.0);
-    double M_total_fragments = 0.0;
-    
-    for (const auto& frag : allFragments)
-    {
-        P_raw += frag.getNetVelocity() * frag.getMass();
-        M_total_fragments += frag.getMass();
-    }
-    
-    // 5b. Calculate Correction
-    // P_initial is the target momentum (from Step 1)
-    Vector2D P_diff = P_initial - P_raw;
-    
-    // Apply correction to the entire mass of the fragments
-    Vector2D V_corr = P_diff / M_total_fragments;
-    
-    // // 5c. Apply Correction and Final Setup
-    // const int GHOST_FRAMES = 5; // TUNEABLE: How many frames to disable collisions
-    
-    for (auto& frag : allFragments)
-    {
-        // Apply the correction to ensure P_final == P_initial
-        frag.setNetVelocity(frag.getNetVelocity() + V_corr);
-        
-    //     // Enable Ghosting/Cooldown to prevent immediate re-collision cascade
-    //     frag.setGhost(GHOST_FRAMES);
-        
-    //     // Update the bounding box now that the final velocity is known
-    //     updateBoundingBox(frag);
-    }
-
-    // 5d. Insert New Fragments into Game State
-    // Since bodyA/bodyB were marked for deletion in Step 2, these are the replacements.
-    for (auto& f : allFragments)
-    {
-        state.addBody(f);
-    }
-} // End of handleDynamicCollision
-
-void PhysicsSystem::handleElasticCollision(GravitationalBody& A, GravitationalBody& B)
-{
-    Vector2D x = B.getPosition() - A.getPosition();
+    Vector2D x = B.position - A.position;
     double dist = x.magnitude();
 
     if (dist == 0) return;
     Vector2D n = x / dist; // collision normal
 
-    Vector2D vA = A.getNetVelocity();
-    Vector2D vB = B.getNetVelocity();
+    Vector2D vA = A.velocity;
+    Vector2D vB = B.velocity;
 
-    double mA = A.getMass();
-    double mB = B.getMass();
+    double mA = A.mass;
+    double mB = B.mass;
 
     // Project velocities onto normal
     double vA_n = vA.dot(n);
@@ -443,288 +299,236 @@ void PhysicsSystem::handleElasticCollision(GravitationalBody& A, GravitationalBo
     Vector2D vB_change = n * (vB_n_new - vB_n)*0.9;
 
     // Apply
-    A.setNetVelocity(vA + vA_change);
-    B.setNetVelocity(vB + vB_change);
+    A.velocity = vA + vA_change;
+    B.velocity = vB + vB_change;
 
     // --- Positional correction to prevent re-collision ---
-    double overlap = A.getRadius() + B.getRadius() - dist;
+    double overlap = A.radius + B.radius - dist;
     if (overlap > 0) {
-        A.setPosition(A.getPosition() - n * (overlap * 0.5));
-        B.setPosition(B.getPosition() + n * (overlap * 0.5));
+        A.position = A.position - n * (overlap * 0.5);
+        B.position = B.position + n * (overlap * 0.5);
     }
 }
 
 
-// /// MINE
-// void PhysicsSystem::handleDynamicCollision(GravitationalBody& bodyA, GravitationalBody& bodyB, GameState& state)
+
+// void PhysicsSystem::createNewGravitationalCluster(UIState& UIState, GameState& state)
 // {
-//     // if (!bodyA.getCollisionEnabled() || !bodyB.getCollisionEnabled()){
-//     //     return;
-//     // }
-        
-//     double mA = bodyA.getMass();
-//     double mB = bodyB.getMass();
-//     Vector2D vA = bodyA.getNetVelocity();
-//     Vector2D vB = bodyB.getNetVelocity();
-
-//     Vector2D P_initial = vA * mA + vB * mB; // total momentum
-
-//     // Helper: produce fragments for one body and return them
-//     auto makeFragmentsForBody = [&](GravitationalBody& source,
-//                                     std::vector<double>& masses)
-//     {
-//         std::vector<GravitationalBody> frags;
-//         frags.reserve(masses.size());
-
-//         Vector2D pos = source.getPosition();
-
-//         for (double fMass : masses)
-//         {
-//             GravitationalBody frag;
-//             frag.setMass(fMass);
-
-//             frag.setRadius(source.getRadius() * sqrt(fMass / source.getMass()));
-//             frag.setPosition(pos + randomDirectionVector() * source.getRadius() * 0.3);
-//             frag.setPrevPosition(frag.getPosition());
-//             Vector2D scatter = randomDirectionVector() * (1.0 + rand() % 20);
-//             frag.setNetVelocity(scatter);
-//             frag.setIsFragment(true);
-//             // instantiate as no collision (to prevent cascading failures)
-//             frag.setCollisionEnabled(false);
-            
-//             updateBoundingBox(frag);
-
-
-//             frags.push_back(frag);
-//         }
-
-//         return frags;
-//     };
-//     // Helper: momentum-correct fragment list
-//     auto fixMomentum = [&](std::vector<GravitationalBody>& frags, Vector2D targetP)
-//     {
-//         double mTotal = 0.0;
-//         Vector2D P_raw(0,0);
-
-//         for (auto& f : frags) {
-//             mTotal += f.getMass();
-//             P_raw += f.getNetVelocity() * f.getMass();
-//         }
-
-//         Vector2D dP = targetP - P_raw;
-//         Vector2D offsetVel = dP / mTotal;
-
-//         for (auto& f : frags) {
-//             f.setNetVelocity(f.getNetVelocity() + offsetVel);
-//         }
-//     };
-
-//     // Vector to hold all fragments to add
-//     std::vector<GravitationalBody> allFragments;
-
-//     int nA = 8 + (rand( )% 16);
-//     int nB = 8 + (rand() % 16);
-//     // ------------------------------
-//     // CASE 1: Both have equal mass → both break
-//     // ------------------------------
-//     if (mA == mB)
-//     {
-
-//         auto massesA = generateRandomFragmentMasses(mA, nA);
-//         auto massesB = generateRandomFragmentMasses(mB, nB);
-
-//         auto fragsA = makeFragmentsForBody(bodyA, massesA);
-//         auto fragsB = makeFragmentsForBody(bodyB, massesB);
-
-//         // Momentum-fix fragments individually if desired
-//         fixMomentum(fragsA, vA * mA);
-//         fixMomentum(fragsB, vB * mB);
-
-//         allFragments.insert(allFragments.end(), fragsA.begin(), fragsA.end());
-//         allFragments.insert(allFragments.end(), fragsB.begin(), fragsB.end());
-
-//         bodyA.setMarkedForDeletion(true);
-//         bodyB.setMarkedForDeletion(true);
+//     // 1. Initial setup and validation
+//     auto& inputState = UIState.getMutableInputState();
+//     if (!inputState.isCreatingCluster) {
+//         return;
 //     }
-//     // ------------------------------
-//     // CASE 2: A heavier → B breaks
-//     // ------------------------------
-//     else if (mA > mB)
-//     {
-//         Vector2D vA_final = P_initial / (mA + mB);
-//         bodyA.setNetVelocity(vA_final);
-
-//         Vector2D P_frag_target = P_initial - vA_final * mA;
-
-//         auto massesB = generateRandomFragmentMasses(mB, nB);
-//         auto fragsB = makeFragmentsForBody(bodyB, massesB);
-
-//         fixMomentum(fragsB, P_frag_target);
-
-//         allFragments.insert(allFragments.end(), fragsB.begin(), fragsB.end());
-//         bodyB.setMarkedForDeletion(true);
-//     }
-//     // ------------------------------
-//     // CASE 3: B heavier → A breaks
-//     // ------------------------------
-//     else
-//     {
-//         Vector2D vB_final = P_initial / (mA + mB);
-//         bodyB.setNetVelocity(vB_final);
-
-//         Vector2D P_frag_target = P_initial - vB_final * mB;
-
-//         auto massesA = generateRandomFragmentMasses(mA, nA);
-//         auto fragsA = makeFragmentsForBody(bodyA, massesA);
-
-//         fixMomentum(fragsA, P_frag_target);
-
-//         allFragments.insert(allFragments.end(), fragsA.begin(), fragsA.end());
-//         bodyA.setMarkedForDeletion(true);
-//     }
-//        // ----- Resolve initial overlaps among fragments with elastic separation -----
-//     for (size_t i = 0; i < allFragments.size(); ++i) {
-//         for (size_t j = i + 1; j < allFragments.size(); ++j) {
-//             Vector2D delta = allFragments[j].getPosition() - allFragments[i].getPosition();
-//             double dist = delta.magnitude();
-//             double minDist = allFragments[i].getRadius() + allFragments[j].getRadius();
-//             if (dist < minDist && dist > 0) {
-//                 Vector2D dir = delta.normalize();
-//                 double penetration = minDist - dist;
-
-//                 // move positions slightly apart
-//                 // allFragments[i].setPosition(allFragments[i].getPosition() - dir * penetration * 1.0);
-//                 // allFragments[j].setPosition(allFragments[j].getPosition() + dir * penetration * 1.0);
-
-//                 double separationFraction = 0.5; // 50% of penetration
-//                 allFragments[i].setPosition(allFragments[i].getPosition() - dir * penetration * separationFraction);
-//                 allFragments[j].setPosition(allFragments[j].getPosition() + dir * penetration * separationFraction);
-
-
-//                 // apply elastic velocity push along separation
-//                 // allFragments[i].setNetVelocity(allFragments[i].getNetVelocity() - dir * penetration / PHYSICS_TIME_STEP * 0.01);
-//                 // allFragments[j].setNetVelocity(allFragments[j].getNetVelocity() + dir * penetration / PHYSICS_TIME_STEP * 0.01);
-//                 double velocityPushFactor = 0.20; // tweakable
-//                 Vector2D push = dir * (penetration / PHYSICS_TIME_STEP * velocityPushFactor * separationFraction);
-//                 allFragments[i].setNetVelocity(allFragments[i].getNetVelocity() - push);
-//                 allFragments[j].setNetVelocity(allFragments[j].getNetVelocity() + push);
-
-                
-
-
-//             }
-//         }
-//     }
-//     // //     // ----- Enable collisions immediately -----
-//     for (auto& f : allFragments){
-//         // f.setCollisionEnabled(true);
-//         f.setCollisionEnabled(false);
-//         // f.setGhost(3);
-//     }
-//     // ---- ADD ALL FRAGMENTS AT ONCE ----
-//     for (auto& f : allFragments)
-//         state.addBody(f);
-// }
-
-// void PhysicsSystem::handleAccretion(GravitationalBody& smallerM, GravitationalBody& largerM)
-// {
-//     // 1. Conservation of Momentum
-//     double m1 = smallerM.getMass();
-//     double m2 = largerM.getMass();
-//     Vector2D v1 = smallerM.getNetVelocity();
-//     Vector2D v2 = largerM.getNetVelocity();
-
-//     double newMass = m1 + m2;
-//     // P_final = P1_initial + P2_initial
-//     Vector2D newVelocity = (v1 * m1 + v2 * m2) / newMass;
-
-//     // 2. Update Collector Body
-//     largerM.setMass(newMass);
-//     largerM.setNetVelocity(newVelocity);
     
-//     // Update radius: Scale by mass ratio, assuming constant density (R ∝ M^(1/3))
-//     double newRadius = largerM.getRadius() * std::pow(newMass / m1, 1.0/3.0);
-//     largerM.setRadius(newRadius);
-//     updateBoundingBox(largerM);
+//     // Create the cluster object and add it to the state
+//     GravitationalCluster cluster;
+//     cluster.centerOfMassPos = inputState.mouseCurrPosition;
+//     cluster.totalMass = inputState.selectedMass;
+//     cluster.initialRadius = inputState.selectedRadius; 
 
-//     // 3. Mark the Absorbed Fragment for Deletion
-//     smallerM.setMarkedForDeletion(true);
+//     int clusterIndex = state.addCluster(cluster);
+//     auto& newCluster = state.getClustersMutable()[clusterIndex];
+
+//     int numParticles = 100; // Hardcoded particle count
+//     double particleMass = cluster.totalMass / numParticles;
+
+//     // 2. Initialize particles with positions and zero velocity
+//     newCluster.clusterParticleIndices.reserve(numParticles);
+//     for (int i = 0; i < numParticles; ++i) {
+//         Particle p;
+        
+//         // Random position within a circle (uniform area distribution)
+//         double angle = (double)rand() / RAND_MAX * 2.0 * PI;
+//         double r = sqrt((double)rand() / RAND_MAX) * cluster.initialRadius;
+
+//         p.position = newCluster.centerOfMassPos + Vector2D(r*cos(angle), r*sin(angle));
+        
+//         // Temporarily set velocity and previous position to zero/equal
+//         p.prevPosition = p.position; 
+//         p.velocity = Vector2D(0.0, 0.0); 
+        
+//         p.mass = particleMass;
+//         p.clusterID = clusterIndex;
+//         p.radius = r; // Particle radius currently equals distance from center (r), should be a small constant or calculated from mass/density
+//         p.netForce = Vector2D(0.0, 0.0);
+//         p.prevForce = Vector2D(0.0, 0.0); // Required for Velocity Verlet
+        
+//         // Add particle to state and track its index in the cluster
+//         int particleIndex = state.addParticle(p);
+//         newCluster.clusterParticleIndices.push_back(particleIndex);
+//     }
+    
+//     // 3. Recompute COM (essential to get the exact COM and totalMass for the next step)
+//     recomputeClusterProperties(state, clusterIndex);
+    
+//     // // 4. Apply Initial Keplerian Velocity Kick for stability
+//     // for (int pIndex : newCluster.clusterParticleIndices) {
+//     //     Particle& p = state.getParticlesMutable()[pIndex];
+//     //     Vector2D r_vec = p.position - newCluster.centerOfMassPos;
+//     //     double r = r_vec.magnitude();
+
+//     //     // Keplerian velocity magnitude: V = sqrt(G*M/r)
+//     //     double V_mag = 0.0;
+//     //     if (r > 1e-6) {
+//     //         // Using a square root term to mimic a smooth distribution rather than V=sqrt(M/r)
+//     //         V_mag = sqrt(GRAVITATIONAL_CONSTANT * newCluster.totalMass / r); 
+//     //     }
+        
+//     //     // V must be perpendicular to r_vec (tangential direction)
+//     //     Vector2D r_norm = r_vec.normalize();
+//     //     Vector2D tangent_norm = Vector2D(-r_norm.y_val, r_norm.x_val); 
+
+//     //     // Apply rotational velocity. Scaling by 0.5 allows the system to contract slightly 
+//     //     // toward a stable state, preventing immediate dispersal.
+//     //     p.velocity = tangent_norm * V_mag * 0.5; 
+
+//     //     // Set p.prevPosition to satisfy the first time step of Velocity Verlet/Leapfrog.
+//     //     // r_{n-1} = r_n - v_n * dt
+//     //     p.prevPosition = p.position - p.velocity * PHYSICS_TIME_STEP; 
+//     // }
+//     // 4. Apply Initial Velocity (Simplified)
+//     for (int pIndex : newCluster.clusterParticleIndices) {
+//         Particle& p = state.getParticlesMutable()[pIndex];
+//         Vector2D r_vec = p.position - newCluster.centerOfMassPos;
+//         double r = r_vec.magnitude();
+
+//         // --- FIX: Simplify Initial Velocity ---
+//         // A stable cluster needs rotation proportional to distance (solid body rotation)
+//         // or zero velocity ("cold start"). A cold start will lead to collapse/oscillation.
+//         // A mild solid-body rotation is more stable than Keplerian.
+        
+//         // TUNEABLE: Angular speed (e.g., 0.005)
+//         const double OMEGA = 0.005; 
+        
+//         if (r > 1e-6) {
+//             // v = omega * r. Velocity must be tangential.
+//             Vector2D tangent_norm = Vector2D(-r_vec.y_val, r_vec.x_val).normalize(); 
+//             p.velocity = tangent_norm * (r * OMEGA); 
+//         } else {
+//             p.velocity = Vector2D(0.0, 0.0);
+//         }
+        
+//         // Set p.prevPosition to satisfy the first time step of Leapfrog/Velocity Verlet.
+//         // r_{n-1} = r_n - v_n * dt
+//         p.prevPosition = p.position - p.velocity * PHYSICS_TIME_STEP; 
+//     }
+//     // 5. Reset flags
+//     inputState.isCreatingCluster = false;
+//     inputState.dirty = false;
 // }
-std::vector<double> PhysicsSystem::generateRandomFragmentMasses(double totalMass, int numFragments)
+void PhysicsSystem::createNewGravitationalCluster(UIState& UIState, GameState& state)
 {
-    std::vector<double> masses;
-    masses.resize(numFragments);
+    // 1. Initial setup and validation (Unchanged)
+    auto& inputState = UIState.getMutableInputState();
+    if (!inputState.isCreatingCluster) {
+        return;
+    }
+    
+    // Create the cluster object and add it to the state
+    GravitationalCluster cluster;
+    cluster.centerOfMassPos = inputState.mouseCurrPosition;
+    cluster.totalMass = inputState.selectedMass;
+    cluster.initialRadius = inputState.selectedRadius; 
 
-    std::vector<double> weights(numFragments);
+    int clusterIndex = state.addCluster(cluster);
+    auto& newCluster = state.getClustersMutable()[clusterIndex];
 
-    double W = 0.0;
-    for (int i = 0; i < numFragments; i++)
-    {
-        // Wide variation
-        // double w = -log((double)rand()/RAND_MAX); 
+    int numParticles = 100;
+    double particleMass = cluster.totalMass / numParticles;
 
-        // Mild variation
-        // double x = randNormal();  // via Box-Muller
-        // double w = fabs(x);
+    // --- CRITICAL CONSTANT: Particle Radius Calculation ---
+    // Assuming uniform density (D = M/V), particle radius should be small and constant
+    // to avoid immediate overlap in the dense core, but large enough for collisions.
+    // Use a fixed small radius, or one based on the total cluster volume.
+    // For simplicity and stability, use a small fraction of the cluster's initial radius.
+    const double PARTICLE_RADIUS = cluster.initialRadius * 0.10; // TUNEABLE: 5% of cluster radius
 
-        // Explosion of tiny objects
-        double w = pow((double)rand()/RAND_MAX, 3.0); // higher exponent = more tiny fragments
+    // 2. Initialize particles with positions and initial velocity
+    newCluster.clusterParticleIndices.reserve(numParticles);
+    for (int i = 0; i < numParticles; ++i) {
+        Particle p;
+        
+        // Random position within a circle (uniform area distribution)
+        double angle = (double)rand() / RAND_MAX * 2.0 * PI;
+        double r = sqrt((double)rand() / RAND_MAX) * cluster.initialRadius;
 
-        // double w = (double)rand() / RAND_MAX; 
-        if (w < 1e-6) w = 1e-6;  // avoid zero mass fragments
-        weights[i] = w;
-        W += w;
+        p.position = newCluster.centerOfMassPos + Vector2D(r*cos(angle), r*sin(angle));
+        
+        // Temporarily set velocity to zero/equal
+        p.velocity = Vector2D(0.0, 0.0); 
+        
+        p.mass = particleMass;
+        p.clusterID = clusterIndex;
+        // FIX: Set a consistent particle radius for softening and collisions
+        p.radius = PARTICLE_RADIUS; 
+        
+        p.netForce = Vector2D(0.0, 0.0);
+        p.prevForce = Vector2D(0.0, 0.0); 
+        
+        // Add particle to state and track its index in the cluster
+        int particleIndex = state.addParticle(p);
+        newCluster.clusterParticleIndices.push_back(particleIndex);
+    }
+    
+    // 3. Recompute COM (essential to get the exact COM and totalMass for the next step)
+    recomputeClusterProperties(state, clusterIndex);
+    
+    // 4. Apply Simplified Rotational Kick (Solid Body Rotation) for stability
+    for (int pIndex : newCluster.clusterParticleIndices) {
+        Particle& p = state.getParticlesMutable()[pIndex];
+        Vector2D r_vec = p.position - newCluster.centerOfMassPos;
+        double r = r_vec.magnitude();
+
+        // TUNEABLE: Angular speed (e.g., 0.005) - Controls rotation rate
+        const double OMEGA = 0.005; 
+        
+        if (r > 1e-6) {
+            // Calculate tangential velocity: V = omega * r
+            Vector2D tangent_norm = Vector2D(-r_vec.y_val, r_vec.x_val).normalize(); 
+            p.velocity = tangent_norm * (r * OMEGA); 
+        } else {
+            p.velocity = Vector2D(0.0, 0.0);
+        }
+        
+        // CRITICAL LEAPFROG INIT STEP: Set p.prevPosition (r_{n-1})
+        // The integrator starts by assuming p.position is r_n and p.velocity is v_n.
+        // The first frame's Step 1 (velocity half-step completion) is skipped.
+        // For the Position Leapfrog integrator to work, it needs $r_{n}$ and $v_{n}$ to calculate $r_{n+1}$.
+        // If we set $r_{n-1}$ such that $r_n - r_{n-1} = v_n \Delta t$, the integrator has a clean start.
+        // r_{n-1} = r_n - v_n * dt
+        p.prevPosition = p.position - p.velocity * PHYSICS_TIME_STEP; 
     }
 
-    for (int i = 0; i < numFragments; i++)
-        masses[i] = totalMass * (weights[i] / W);
-
-    return masses;
+    // 5. Reset flags (Unchanged)
+    inputState.isCreatingCluster = false;
+    inputState.dirty = false;
 }
 
-Vector2D PhysicsSystem::randomDirectionVector()
+void PhysicsSystem::recomputeClusterProperties(GameState& state, int clusterIndex)
 {
-    double angle = ((double)rand() / RAND_MAX) * 2.0 * PI;
-    return Vector2D(cos(angle), sin(angle));
+    auto& cluster = state.getClustersMutable()[clusterIndex];
+    const auto& particles = state.getParticles();
+
+    Vector2D comPosition(0.0, 0.0);
+    Vector2D comVelocity(0.0, 0.0);
+    double totalMass = 0.0;
+
+    for (int pIndex : cluster.clusterParticleIndices){
+        const Particle& p = particles[pIndex];
+        // Skip deleted or bad indices if they exist
+        if (p.markedForDeletion) continue;
+        comPosition += p.position * p.mass;
+        comVelocity += p.velocity * p.mass;
+        totalMass += p.mass;
+    }
+
+    if (totalMass > 0.0){
+        comPosition = comPosition / totalMass;
+        comVelocity = comVelocity / totalMass;
+    }
+
+    cluster.centerOfMassPos = comPosition;
+    cluster.bulkVelocity = comVelocity;
+    cluster.totalMass = totalMass;
 }
-// Return true if `body` overlaps ANY other body in `bodies` (ignoring itself and deleted bodies)
-// bool PhysicsSystem::isOverlappingAny(const GravitationalBody& body, const GameState& state) {
-//     for (const auto& other : state.getBodies()) {
-//         if (&other == &body) continue; // skip self
-//         if (other.getMarkedForDeletion()) continue;
-//         if (other.getIsGhost()) continue;
-//         // Quick AABB reject/accept first
-//         // if (!body.getBoundingBox().overlaps(other.getBoundingBox())) continue;
-//         // precise radius check
-//         Vector2D d = other.getPosition() - body.getPosition();
-//         double dist = d.magnitude();
-//         double minDist = body.getRadius() + other.getRadius();
-//         if (dist <= minDist) return true;
-//     }
-//     return false;
-// }
-void PhysicsSystem::updateBoundingBox(GravitationalBody& body) {
-    // next pos propagated but with a fudge factor due to potential extreme acceleration in between frames. Probably need to do a derivation for what the maximum is to most optimize the size of the box
-    // but this is proof of concept.
-    Vector2D expectedNextPos = body.getPosition() + body.getNetVelocity()*PHYSICS_TIME_STEP;
-    Vector2D currentPos = body.getPosition();
-    float radius = body.getRadius();
 
-    double minX = std::min(currentPos.x_val, expectedNextPos.x_val) - radius;
-    double maxX = std::max(currentPos.x_val, expectedNextPos.x_val) + radius;
-    double minY = std::min(currentPos.y_val, expectedNextPos.y_val) - radius;
-    double maxY = std::max(currentPos.y_val, expectedNextPos.y_val) + radius;
-
-    // Expand by 50% for safety margin
-    const double expansionFactor = 0.05;
-    double expandX = (maxX - minX) * expansionFactor * 0.5;
-    double expandY = (maxY - minY) * expansionFactor * 0.5;
-
-    BoundingBox box;
-    box.min_X = minX - expandX;
-    box.max_X = maxX + expandX;
-    box.min_Y = minY - expandY;
-    box.max_Y = maxY + expandY;
-
-    body.setBoundingBox(box);
-}
