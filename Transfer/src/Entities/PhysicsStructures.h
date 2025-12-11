@@ -79,29 +79,3 @@ struct Vector2D
 // **DECLARATION ONLY:** The compiler just needs to know this function exists.
 std::ostream& operator<<(std::ostream& os, const Vector2D& Vec);
 
-
-struct BoundingBox
-{
-	double min_X;
-	double max_X;
-	double min_Y;
-	double max_Y;
-
-	// checks for overlaps with another bounding box
-	bool overlaps(const BoundingBox& other) const {
-		return !(max_X < other.min_X ||
-        min_X > other.max_X ||
-        max_Y < other.min_Y ||
-        min_Y > other.max_Y);
-	}
-};
-
-
-// struct InitializerVelocities
-// {
-// 	int x_init;
-// 	int y_init;
-// 	int x_end;
-// 	int y_end;
-// 	VelocityVector2D velocity;
-// };

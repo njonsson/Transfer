@@ -30,7 +30,6 @@ RenderSystem::RenderSystem()
         SDL_Log("Failed to load font: %s", SDL_GetError());
         return;
     }
-    // SDL_Log("Loaded font from path: %s", fontPath.c_str());
     createStarTextures();
     createStarField(STAR_NUM);   
 }
@@ -90,12 +89,12 @@ void RenderSystem::renderBodies(GameState& state)
         Vector2D prevPosition = particle.prevPosition;
         float renderX = prevPosition.x_val * (1.0f - alpha) + currPosition.x_val * alpha;
         float renderY = prevPosition.y_val * (1.0f - alpha) + currPosition.y_val * alpha;
-
+        float r = static_cast<float>(particle.radius);
         SDL_FRect dstRect = {
-            renderX - particle.radius,
-            renderY - particle.radius,
-            particle.radius * 2,
-            particle.radius * 2
+            renderX - r,
+            renderY - r,
+            r * 2,
+            r * 2
         };
 
         SDL_RenderTexture(renderer, tex, nullptr, &dstRect);
@@ -120,29 +119,6 @@ SDL_Color RenderSystem::getColorForMass(double mass)
 
     return SDL_Color{ r, g, b, a };
 }
-
-// Helper to render the Frame Rate Counter if enabled.
-// void RenderSystem::renderFrameRateCounter(float fps)
-// {
-//     // Convert FPS to string
-//     std::string fpsText = "FPS: " + std::to_string(static_cast<int>(fps));
-//     SDL_Surface* textSurface = TTF_RenderText_Blended(FPSFont, fpsText.c_str(), fpsText.length(), ColorLibrary::White);
-//     if (!textSurface) {
-//         SDL_Log("Text surface creation failed: %s", SDL_GetError());
-//         return;
-//     }
-
-//     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-//     if (!textTexture) {
-//         SDL_Log("Text texture creation failed: %s", SDL_GetError());
-//         return;
-//     }
-    
-//     SDL_FRect dstRect = {10.0f, 10.0f, static_cast<float>(textSurface->w), static_cast<float>(textSurface->h)};
-//     SDL_RenderTexture(renderer, textTexture, nullptr, &dstRect);
-//     SDL_DestroySurface(textSurface);
-//     SDL_DestroyTexture(textTexture);
-// }
 
 // Helper to correctly destroy the circle texture cache.
 void RenderSystem::clearCachedCircleTextures()

@@ -12,7 +12,7 @@ const double REGULAR_TIME_SCALE_FACTOR = 1.0f;
 
 constexpr int FPS_UPDATE_DELTA_MS = 250;
 
-constexpr int SCREEN_HEIGHT = 1080;
-constexpr int SCREEN_WIDTH = 1920;
+constexpr int SCREEN_HEIGHT = 720;
+constexpr int SCREEN_WIDTH = 1280;
 
-constexpr int STAR_NUM = 800;
+constexpr int STAR_NUM = 200;

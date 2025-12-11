@@ -97,33 +97,33 @@ void InputSystem::ProcessSystemInputFrame(GameState& state, UIState& UIState)
         // Additional input handling logic can be added here
 }
 
-void InputSystem::createNewBody(SDL_Event& event, GameState& state)
-{
-    GravitationalBody newBody;
+// void InputSystem::createNewBody(SDL_Event& event, GameState& state)
+// {
+//     GravitationalBody newBody;
 
-    float radius = 15.0;
-    newBody.setRadius(radius);
+//     float radius = 15.0;
+//     newBody.setRadius(radius);
 
-    double mass = MAX_MASS; // in kilograms
-    newBody.setMass(mass);
+//     double mass = MAX_MASS; // in kilograms
+//     newBody.setMass(mass);
 
-    // Vector2D bodyVelocity = {100,0};
-    // newBody.setNetVelocity(bodyVelocity);
+//     // Vector2D bodyVelocity = {100,0};
+//     // newBody.setNetVelocity(bodyVelocity);
 
-    newBody.setCollisionEnabled(true);
+//     newBody.setCollisionEnabled(true);
     
-    Vector2D bodyPosition = { event.button.x, event.button.y }; // position measured in pixel xy cooriifnates measured from top-left corner.
-    newBody.setPosition(bodyPosition);
+//     Vector2D bodyPosition = { event.button.x, event.button.y }; // position measured in pixel xy cooriifnates measured from top-left corner.
+//     newBody.setPosition(bodyPosition);
 
-    Vector2D prevPosition = bodyPosition; // previous pixel position
-    newBody.setPrevPosition(prevPosition);
+//     Vector2D prevPosition = bodyPosition; // previous pixel position
+//     newBody.setPrevPosition(prevPosition);
 
-    state.addBody(newBody);
+//     state.addBody(newBody);
 
-    std::cout<<"New Body Created: "<<std::endl;
-    std::cout<<newBody<<std::endl;
+//     std::cout<<"New Body Created: "<<std::endl;
+//     std::cout<<newBody<<std::endl;
 
-};
+// };
 
 void InputSystem::handleMassSliderInput(SDL_Event& event, UIState& UIState)
 {
