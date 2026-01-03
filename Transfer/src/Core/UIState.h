@@ -25,21 +25,23 @@ class UIState
 
 
         // Add UI state management methods and members here
-        std::vector<UIElement*> getUIElements() const { return elements; }
+        std::vector<UIElement*> getUIElements() const { return uielements; }
         // Initializing helper.
-        void addUIElement(UIElement* element) { elements.push_back(element); }
+        void addUIElement(UIElement* uielement) { uielements.push_back(uielement); }
         // Cleanup helper.
-        void clearUIElements() { elements.clear(); }
+        void clearUIElements() { uielements.clear(); }
 
         bool getShowFPSCounter() const { return showFPSCounter; }
         void setShowFPSCounter(bool show) { showFPSCounter = show; }
+
+        InputState& getMutableInputState() { return inputState; }
+        const InputState& getInputState() const { return inputState; }
     private:
         // FPS counter state
         float fps = 0.0f;
         bool showFPSCounter = false;
         // Input state for UI interactions
         InputState inputState;
-
         // Collection of UI elements
-        std::vector<UIElement*> elements;
+        std::vector<UIElement*> uielements;
 };

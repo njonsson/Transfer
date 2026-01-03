@@ -30,7 +30,6 @@ RenderSystem::RenderSystem()
         SDL_Log("Failed to load font: %s", SDL_GetError());
         return;
     }
-    // SDL_Log("Loaded font from path: %s", fontPath.c_str());
     createStarTextures();
     createStarField(STAR_NUM);   
 }
@@ -64,7 +63,8 @@ void RenderSystem::RenderFullFrame(GameState& state, UIState& UIState)
     // render starry background
     updateStars();
     renderStars();
-    // Render all the bodies
+
+    // Render all the bodies (particles)
     RenderSystem::renderBodies(state);
 
     // Render any input artifacts (like drag lines) TBI
@@ -82,23 +82,51 @@ void RenderSystem::RenderFullFrame(GameState& state, UIState& UIState)
 void RenderSystem::renderBodies(GameState& state)
 {
     float alpha = state.getAlpha();
-    for (auto& body : state.getBodies()) {
-        SDL_Color color = getColorForMass(body.getMass());
-        SDL_Texture* tex = getCircleTexture(body.getRadius(), color);
-        Vector2D currPosition = body.getPosition();
-        Vector2D prevPosition = body.getPrevPosition();
-        float renderX = prevPosition.x_val * (1.0f - alpha) + currPosition.x_val * alpha;
-        float renderY = prevPosition.y_val * (1.0f - alpha) + currPosition.y_val * alpha;
-
+    for (auto& particle : state.getParticles()) {
+        SDL_Color color = getColorForMass(particle.mass);
+        SDL_Texture* tex = getCircleTexture(static_cast<int>(particle.radius), color);
+        Vector2D currPosition = particle.position;
+        Vector2D prevPosition = particle.prevPosition;
+        // interpolation causes particle flickers for small particles. Remove for now. Figure out dynamical fix later.
+        float renderX, renderY;
+        if (particle.radius <= 1.0 && state.getToggleSlow() == false) {
+            renderX = particle.position.x_val;
+            renderY = particle.position.y_val;
+            renderX = std::round(renderX);
+            renderY = std::round(renderY);
+        }
+        else {
+            renderX = prevPosition.x_val * (1.0f - alpha) + currPosition.x_val * alpha;
+            renderY = prevPosition.y_val * (1.0f - alpha) + currPosition.y_val * alpha;
+        }
+        float r = static_cast<float>(particle.radius);
         SDL_FRect dstRect = {
-            renderX - body.getRadius(),
-            renderY - body.getRadius(),
-            body.getRadius() * 2,
-            body.getRadius() * 2
+            renderX - r,
+            renderY - r,
+            r * 2,
+            r * 2
         };
 
         SDL_RenderTexture(renderer, tex, nullptr, &dstRect);
     }
+    for (auto& body : state.getMacroBodies()) {
+        SDL_Color color = getColorForMass(body.mass);
+        SDL_Texture* tex = getCircleTexture(static_cast<int>(body.radius), color);
+        Vector2D currPosition = body.position;
+        Vector2D prevPosition = body.prevPosition;
+        float renderX = prevPosition.x_val * (1.0f - alpha) + currPosition.x_val * alpha;
+        float renderY = prevPosition.y_val * (1.0f - alpha) + currPosition.y_val * alpha;
+        float r = static_cast<float>(body.radius);
+        SDL_FRect dstRect = {
+            renderX - r,
+            renderY - r,
+            r * 2,
+            r * 2
+        };
+
+        SDL_RenderTexture(renderer, tex, nullptr, &dstRect);
+    }
+    
 }
 
 // Renders user input artifacts like drag lines. TBI
@@ -118,29 +146,6 @@ SDL_Color RenderSystem::getColorForMass(double mass)
 
     return SDL_Color{ r, g, b, a };
 }
-
-// Helper to render the Frame Rate Counter if enabled.
-// void RenderSystem::renderFrameRateCounter(float fps)
-// {
-//     // Convert FPS to string
-//     std::string fpsText = "FPS: " + std::to_string(static_cast<int>(fps));
-//     SDL_Surface* textSurface = TTF_RenderText_Blended(FPSFont, fpsText.c_str(), fpsText.length(), ColorLibrary::White);
-//     if (!textSurface) {
-//         SDL_Log("Text surface creation failed: %s", SDL_GetError());
-//         return;
-//     }
-
-//     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-//     if (!textTexture) {
-//         SDL_Log("Text texture creation failed: %s", SDL_GetError());
-//         return;
-//     }
-    
-//     SDL_FRect dstRect = {10.0f, 10.0f, static_cast<float>(textSurface->w), static_cast<float>(textSurface->h)};
-//     SDL_RenderTexture(renderer, textTexture, nullptr, &dstRect);
-//     SDL_DestroySurface(textSurface);
-//     SDL_DestroyTexture(textTexture);
-// }
 
 // Helper to correctly destroy the circle texture cache.
 void RenderSystem::clearCachedCircleTextures()

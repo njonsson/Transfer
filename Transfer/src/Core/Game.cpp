@@ -114,7 +114,7 @@ void Game::ProcessInput()
 void Game::UpdatePhysicsFrame()
 {
 	// Dispatch to Physics System
-	physicsSystem.UpdateSystemFrame(state);
+	physicsSystem.UpdateSystemFrame(state, UIState);
 }
 
 void Game::RenderFrame()

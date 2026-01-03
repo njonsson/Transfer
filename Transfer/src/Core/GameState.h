@@ -34,10 +34,14 @@ class GameState
         // void setBodySelectionValidity(bool isValid) { inputState.bodySelectionValidity = isValid; }
         // bool isBodySelectionValid() const { return inputState.bodySelectionValidity; }
 
-        const std::vector<GravitationalBody>& getBodies() const { return bodies; }
-        std::vector<GravitationalBody>& getBodiesMutable() {return bodies; }
-        void addBody(const GravitationalBody& body) { bodies.push_back(body); }
-        void clearBodies() { bodies.clear(); }
+
+
+        const std::vector<GravitationalBody>& getParticles() const {return particles;}
+        std::vector<GravitationalBody>& getParticlesMutable() {return particles;}
+
+        const std::vector<GravitationalBody>& getMacroBodies() const {return macroBodies;}
+        std::vector<GravitationalBody>& getMacroBodiesMutable() {return macroBodies;}
+        
 
         float getAlpha() const {return alpha;}
         void setAlpha(float alphaIn) {alpha = alphaIn;}
@@ -45,8 +49,10 @@ class GameState
         float getTimeScaleFactor() const {if (toggleSlow) return SLOW_TIME_SCALE_FACTOR; else return REGULAR_TIME_SCALE_FACTOR;}
         // void setTimeScaleFactor(float scale) {timeScaleFactor = scale;}
 
-        // bool getToggleSlow() const {return toggleSlow;}
+        bool getToggleSlow() const {return toggleSlow;}
         void invertToggleSlow() {toggleSlow = !toggleSlow;}
+
+
     private:
         // State variables
         bool isPlaying = false;
@@ -57,7 +63,8 @@ class GameState
         
         // float timeScaleFactor = REGULAR_TIME_SCALE_FACTOR; // default to 1.0 for standard scaling
         bool toggleSlow = false; // default to false for regular speed
-        // Collection of bodies in the game 
-        std::vector<GravitationalBody> bodies; 
+
+        std::vector<GravitationalBody> macroBodies;
+        std::vector<GravitationalBody> particles;
 };
 
