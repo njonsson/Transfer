@@ -26,6 +26,7 @@ void Game::StartGame()
 	// Initialize UI elements (like FPS counter and Sliders) and other vars as we go.
 	renderSystem.getUISystem()->InitializeUIElements(UIState);
 
+
 	// Start the main game loop
 	Game::Run();
     
@@ -61,9 +62,40 @@ void Game::Run()
 	// Frame interpolation alpha (dynamic)
 	float alpha = gameState.getAlpha();
 
+
+    bool playMusic = true;
+        // Attempt audio playback
+
+    SDL_InitSubSystem(SDL_INIT_AUDIO);
+    SDL_AudioDeviceID device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
+    if (!device) {
+        SDL_Log("Failed to open audio device: %s", SDL_GetError());
+    }
+    SDL_AudioSpec wavSpec;
+    Uint8* wavBuffer = nullptr;
+    Uint32 wavLength = 0;
+
+    if (!SDL_LoadWAV("Transfer/Assets/Music/TitlePage.wav", &wavSpec, &wavBuffer, &wavLength)) {
+        SDL_Log("Failed to load WAV: %s", SDL_GetError());
+    }
+    SDL_AudioStream* stream = SDL_CreateAudioStream(
+        &wavSpec, // source format
+        &wavSpec  // destination format (same as source for no conversion)
+    );
+
+    SDL_BindAudioStream(device, stream);
+    SDL_Log("Queued WAV length: %u bytes", wavLength);
+
 	while (gameState.IsPlaying()){
 
 		// Poll for SDL Events and Process Input
+
+        if (playMusic)
+        {
+            SDL_PutAudioStreamData(stream, wavBuffer, wavLength);
+            SDL_FlushAudioStream(stream); // tells SDL "this chunk is complete"
+            playMusic = false;
+        }
 		Game::ProcessInput();
 
 		// Timekeeping
@@ -96,6 +128,10 @@ void Game::Run()
         // Frame limiting (soft limiting)
         LimitFrameRate(render_start, render_end);
     }
+    SDL_DestroyAudioStream(stream);
+    SDL_CloseAudioDevice(device);
+    SDL_free(wavBuffer);
+    SDL_QuitSubSystem(SDL_INIT_AUDIO);
 
 }
 
