@@ -5,6 +5,7 @@
 InputSystem::InputSystem()
 {
     // Initialize input system variables if needed
+    SDL_InitSubSystem(SDL_INIT_EVENTS);
 }
 
 InputSystem::~InputSystem()
