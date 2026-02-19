@@ -1,0 +1,140 @@
+// File: Transfer/src/Systems/AudioSystem.cpp
+
+#include "Systems/AudioSystem.h"
+
+
+AudioSystem::AudioSystem()
+{
+    // Initialize audio system variables if needed
+    SDL_InitSubSystem(SDL_INIT_AUDIO);
+
+    device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
+    if (!device)
+    {
+        SDL_Log("Failed to open audio device: %s", SDL_GetError());
+    }
+    AddAllMusicToPlaylist("Transfer/Assets/Music");
+    SDL_PauseAudioDevice(device);
+}
+
+
+AudioSystem::~AudioSystem()
+{   
+    CleanUp();
+    stream = nullptr;
+    device = 0;
+    wavBuffer = nullptr;
+    wavLength = 0;
+}
+
+void AudioSystem::CleanUp()
+{
+    if (stream)
+    {
+        SDL_DestroyAudioStream(stream);
+        stream = nullptr;
+    }
+
+    if (device)
+    {
+        SDL_CloseAudioDevice(device);
+        device = 0;
+    }
+
+    if (wavBuffer)
+    {
+        SDL_free(wavBuffer);
+        wavBuffer = nullptr;
+    }
+
+    SDL_QuitSubSystem(SDL_INIT_AUDIO);
+}
+
+
+void AudioSystem::ProcessSystemAudioFrame(GameState& gameState, UIState& UIState)
+{
+    if (!device) return;
+    if (gameState.getPlayMusic())
+    {
+        if (!isQueued)
+        {
+            if (!musicPlaylist.empty())
+            {
+                std::string nextTrack = musicPlaylist.front();
+                musicPlaylist.pop();
+                musicPlaylist.emplace(nextTrack);
+                if (LoadTrack(nextTrack))
+                {
+                    SDL_PutAudioStreamData(stream, wavBuffer, wavLength);
+                    SDL_FlushAudioStream(stream);
+                    isQueued = true;
+                    SDL_ResumeAudioDevice(device);
+                }
+            }
+        }
+        else 
+        {
+            if (SDL_GetAudioStreamAvailable(stream) == 0)
+            {
+                isQueued = false;
+            }
+        }
+    }
+    else
+    {
+        SDL_ClearAudioStream(stream);
+        SDL_PauseAudioDevice(device);
+        isQueued = false;
+    }
+}
+
+bool AudioSystem::LoadTrack(const std::string& musicFilePath)
+{
+    // Free previous buffer if it exists
+    if (wavBuffer)
+    {
+        SDL_free(wavBuffer);
+        wavBuffer = nullptr;
+        wavLength = 0;
+    }
+
+    if (!SDL_LoadWAV(musicFilePath.c_str(), &wavSpec, &wavBuffer, &wavLength))
+    {
+        SDL_Log("Failed to load WAV %s: %s", musicFilePath.c_str(), SDL_GetError());
+        return false;
+    }
+
+    // Recreate stream to match new wavSpec
+    if (stream)
+        SDL_DestroyAudioStream(stream);
+        stream = nullptr;
+
+    stream = SDL_CreateAudioStream(&wavSpec, &wavSpec);
+    SDL_BindAudioStream(device, stream);
+
+    return true;
+}
+
+void AudioSystem::AddAllMusicToPlaylist(const std::string& folderPath)
+{
+    if (!std::filesystem::exists(folderPath) || !std::filesystem::is_directory(folderPath))
+    {
+        SDL_Log("Music folder not found: %s", folderPath.c_str());
+        return;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(folderPath))
+    {
+        if (entry.is_regular_file())
+        {
+            std::string path = entry.path().string();
+
+            // Only accept .wav files
+            if (entry.path().extension() == ".wav")
+            {
+                musicPlaylist.push(path);
+                SDL_Log("Added to playlist: %s", path.c_str());
+            }
+        }
+    }
+}

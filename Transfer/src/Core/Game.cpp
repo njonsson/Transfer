@@ -5,7 +5,7 @@
 
 // Likely change the resolution to be scalable in the future? default 1920x1080 for now. Will be inside the Render system eventually.
 Game::Game()
-	:  gameState(), UIState(), inputSystem(), physicsSystem(), renderSystem()
+	:  gameState(), UIState(), inputSystem(), physicsSystem(), renderSystem(), audioSystem()
 {
 	// fill in imp here
 }
@@ -26,6 +26,7 @@ void Game::StartGame()
 	// Initialize UI elements (like FPS counter and Sliders) and other vars as we go.
 	renderSystem.getUISystem()->InitializeUIElements(UIState);
 
+
 	// Start the main game loop
 	Game::Run();
     
@@ -36,9 +37,6 @@ void Game::StartGame()
 void Game::EndGame()
 {
     renderSystem.getUISystem()->DeleteUIElements(UIState);
-    renderSystem.CleanUp();
-    physicsSystem.CleanUp();
-    inputSystem.CleanUp();
 }
 void Game::Run()
 {	
@@ -61,8 +59,12 @@ void Game::Run()
 	// Frame interpolation alpha (dynamic)
 	float alpha = gameState.getAlpha();
 
+    
+
 	while (gameState.IsPlaying()){
 
+        // Play Audio
+        Game::PlayAudio();
 		// Poll for SDL Events and Process Input
 		Game::ProcessInput();
 
@@ -78,7 +80,7 @@ void Game::Run()
         // Update Physics (remains untouched by time scaling of rendering, maintaining physics accuracy)
         while (physics_time_accumulator >= PHYSICS_TIME_STEP)
         {
-            UpdatePhysicsFrame();
+            Game::UpdatePhysicsFrame();
             physics_time_accumulator -= PHYSICS_TIME_STEP;
         }
         // Rendering
@@ -86,15 +88,15 @@ void Game::Run()
         gameState.setAlpha(alpha);
 
         render_start = SDL_GetTicks();
-        RenderFrame();
+        Game::RenderFrame();
         render_end = SDL_GetTicks();
 
         // FPS Calculation
-        UpdateFPS(render_end, last_render_time, fps_time_accumulator, current_fps);
+        Game::UpdateFPS(render_end, last_render_time, fps_time_accumulator, current_fps);
         last_render_time = render_end;
 
         // Frame limiting (soft limiting)
-        LimitFrameRate(render_start, render_end);
+        Game::LimitFrameRate(render_start, render_end);
     }
 
 }
@@ -105,9 +107,6 @@ void Game::Run()
 void Game::ProcessInput()
 {
 	// Dispatch to Input System
-	// inputSystem.ProcessSystemFrame(gameState);
-//	UISystem.ProcessUIFrame(gameState, UIState);
-    // Updates the UI gameState and 
 	inputSystem.ProcessSystemInputFrame(gameState, UIState);
 }
 
@@ -119,10 +118,17 @@ void Game::UpdatePhysicsFrame()
 
 void Game::RenderFrame()
 {
-	// Dispatch to Renderer System -- fills in UI as well.
+	// Dispatch to Renderer System -- renders UI as well.
 	renderSystem.RenderFullFrame(gameState, UIState);
 }
 
+void Game::PlayAudio()
+{
+    if (gameState.getPlayMusic())
+    {
+        audioSystem.ProcessSystemAudioFrame(gameState, UIState);
+    }
+}
 // --------- UTILITY METHODS FOR FPS --------- //
 
 void Game::UpdateFPS(uint32_t renderEnd, uint32_t lastRender, float& fpsAccumulator, float& currentFPS)
@@ -145,5 +151,7 @@ void Game::LimitFrameRate(uint32_t renderStart, uint32_t renderEnd)
 {
     double frame_duration = static_cast<double>(renderEnd - renderStart);
     if (frame_duration < FRAME_DELAY_MS)
+    {
         SDL_Delay(static_cast<uint32_t>(FRAME_DELAY_MS - frame_duration));
+    }
 }

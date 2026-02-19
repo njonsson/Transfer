@@ -105,12 +105,11 @@ void PhysicsSystem::updateGravBodyInstantiations(GameState& gameState, UIState& 
                 createParticle(gameState, input_state);
                 input_state.resetTransientFlags();
             }
-        // else if (input_state.isCreatingParticleCluster)
-        //     {
-        //         createMacroBody(gameState, input_state);
-        //         substituteWithParticles(gameState.getMacroBodiesMutable().back(), gameState);
-        //         input_state.resetTransientFlags();
-        //     }
+        else if (input_state.isCreatingParticleCluster)
+            {
+                createParticleCluster(gameState, input_state);
+                input_state.resetTransientFlags();
+            }
     }
     // Check if all Gravitational Bodies are supposed to be wiped
     if (input_state.clearAll){
@@ -589,6 +588,19 @@ void PhysicsSystem::createParticle(GameState& gameState, InputState& inputState)
     inputState.dirty = false;
 }
 
+void PhysicsSystem::createParticleCluster(GameState& gameState, InputState& inputState)
+{
+    GravitationalBody body;
+    body.mass = inputState.selectedMass;
+    body.radius = inputState.selectedRadius;
+    body.position = inputState.mouseCurrPosition;
+    body.previousPosition = body.position;
+    body.isPlanet = true;
+    body.isStatic = inputState.isCreatingStatic;
+
+    substituteWithParticles(body, gameState);
+
+}
 // --------- TOTAL ENERGY CALCULATION METHOD --------- //
 
 void PhysicsSystem::calculateTotalEnergy(GameState& gameState)

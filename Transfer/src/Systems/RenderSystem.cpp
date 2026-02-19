@@ -6,7 +6,7 @@
 RenderSystem::RenderSystem()
 {
     // Add audio later
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    SDL_InitSubSystem(SDL_INIT_VIDEO);
     TTF_Init();
 
     int desired_x_resolution = SCREEN_WIDTH;
@@ -37,7 +37,7 @@ RenderSystem::RenderSystem()
 // Destructor: Cleans up SDL Window and Renderer
 RenderSystem::~RenderSystem()
 {
-
+    CleanUp();
     if (renderer) {
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;

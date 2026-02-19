@@ -57,7 +57,7 @@ class PhysicsSystem
         // Gravitational Body Creation Mechanisms
         void createMacroBody(GameState& gameState, InputState& inputState);          // Creates a Macro Gravitational Body with the user-defined attributes
         void createParticle(GameState& gameState, InputState& inputState);           // Creates a Particle Gravitational Body with the user-defined attriubutes
-        // void createParticleCluster(Particle& originalBody, GameState& gameState); // Creates a cluster of Particle Gravitational Bodies with the user-defined attributes
+        void createParticleCluster(GameState& gameState, InputState& inputState); // Creates a cluster of Particle Gravitational Bodies with the user-defined attributes
         
         // Utility Functions
         void calculateTotalEnergy(GameState& gameState); // Calculates total energy of all Macro Bodies and Particles on Screen.

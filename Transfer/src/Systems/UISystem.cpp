@@ -45,6 +45,8 @@ void UISystem::DeleteUIElements(UIState& UIState)
 void UISystem::RenderUIElements(SDL_Renderer* renderer, UIState& UIState, TTF_Font* UIFont)
 {
     std::vector<UIElement*> ui_elements = UIState.getUIElements();
+    if (!UIState.getUIElementsVisible()) return; // Skip rendering if UI elements are hidden
+    
     for (auto& element : ui_elements) {
         element->renderElement(renderer, UIState, UIFont); // Pass UIFont if needed
     }
