@@ -9,6 +9,7 @@
 #include "Systems/RenderSystem.h"
 #include "Systems/PhysicsSystem.h"
 #include "Systems/InputSystem.h"
+#include "Systems/AudioSystem.h"
 #include "Systems/UISystem.h"
 #include "Utilities/EngineConstants.h"
 #include "Utilities/GameSystemConstants.h"
@@ -39,6 +40,7 @@ class Game
 		void ProcessInput(); 		// Handles User Input from keyboard and mouse events
 		void UpdatePhysicsFrame();  // Updates Game State and Physics
 		void RenderFrame();  		// Renders the current frame to the screen including UI
+		void PlayAudio();           // Plays audio based on the current game state and UI state
 
 		// Helpers for Run() method
 		void UpdateFPS(uint32_t renderEnd, uint32_t lastRender, float& fpsAccumulator, float& currentFPS); 	// Rolling average frame calculation and update
@@ -52,4 +54,5 @@ class Game
 		InputSystem inputSystem;     // Manages all user input
 		PhysicsSystem physicsSystem; // Manages physics calculations and Frame Updates
 		RenderSystem renderSystem;	 // Manages all rendering operations
+		AudioSystem audioSystem;     // Manages all audio operations
 };

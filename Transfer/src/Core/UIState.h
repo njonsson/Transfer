@@ -36,6 +36,10 @@ class UIState
 
         InputState& getMutableInputState() { return inputState; }
         const InputState& getInputState() const { return inputState; }
+
+        bool getUIElementsVisible() const { return UIElementsVisible; }
+        void invertUIElementsVisibility() { UIElementsVisible = !UIElementsVisible; }
+        
     private:
         // FPS counter state
         float fps = 0.0f;
@@ -44,6 +48,8 @@ class UIState
         // Input state for UI interactions
         InputState inputState;
         
+        bool UIElementsVisible = true; // Flag to toggle visibility of UI elements
+
         // Collection of UI elements
         std::vector<UIElement*> UIElements;
 };

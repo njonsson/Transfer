@@ -43,10 +43,14 @@ class GameState
         bool getToggleFast() const {return toggleFast;}
         void invertToggleFast() {toggleFast = !toggleFast;}
 
+        bool getPlayMusic() const {return playMusic;}
+        void invertPlayMusic() {playMusic = !playMusic;}
+
 
     private:
         // State variables
         bool isPlaying = false;
+        bool playMusic = false;
         
 
         // Frame helper vars

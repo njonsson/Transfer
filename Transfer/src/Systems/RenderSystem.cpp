@@ -37,7 +37,7 @@ RenderSystem::RenderSystem()
 // Destructor: Cleans up SDL Window and Renderer
 RenderSystem::~RenderSystem()
 {
-
+    CleanUp();
     if (renderer) {
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;

@@ -11,6 +11,7 @@ InputSystem::InputSystem()
 InputSystem::~InputSystem()
 {
     // Cleanup if necessary
+    CleanUp();
 }
 
 
@@ -23,7 +24,8 @@ void InputSystem::ProcessSystemInputFrame(GameState& gameState, UIState& UIState
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
 
-        switch (event.type) {
+        switch (event.type)
+        {
             // Handle different event types here
             case SDL_EVENT_QUIT:
                 gameState.SetPlaying(false);
@@ -36,17 +38,18 @@ void InputSystem::ProcessSystemInputFrame(GameState& gameState, UIState& UIState
             }
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
             {
-                if (event.button.button == SDL_BUTTON_LEFT) {
+                if (event.button.button == SDL_BUTTON_LEFT)
+                {
                     auto& updated_input_state = UIState.getMutableInputState();
                     updated_input_state.isHoldingLeftMouseButton = true;
                     updated_input_state.dirty = true;
                     updated_input_state.isCreatingMacro = true;
-                    // updated_input_state.mouseCurrPosition = {event.button.x, event.button.y};
                     updated_input_state.selectedMass = MAX_MASS/10.0;
                     updated_input_state.selectedRadius = 50.0;
                     break;
                 }
-                if (event.button.button == SDL_BUTTON_RIGHT) {
+                if (event.button.button == SDL_BUTTON_RIGHT)
+                {
                     auto& updated_input_state = UIState.getMutableInputState();
                     updated_input_state.isHoldingRightMouseButton = true;
                     updated_input_state.mouseCurrPosition = {event.button.x, event.button.y};
@@ -63,7 +66,8 @@ void InputSystem::ProcessSystemInputFrame(GameState& gameState, UIState& UIState
                 break;
             }
             case SDL_EVENT_KEY_DOWN:
-                if (event.key.scancode == SDL_SCANCODE_SPACE){
+                if (event.key.scancode == SDL_SCANCODE_SPACE)
+                {
                     auto& updated_input_state = UIState.getMutableInputState();
                     updated_input_state.dirty = true;
                     updated_input_state.isCreatingMacro = true;
@@ -84,15 +88,27 @@ void InputSystem::ProcessSystemInputFrame(GameState& gameState, UIState& UIState
                 {
                     UIState.getMutableInputState().clearAllBodies();
                 }
-                // else if (event.key.scancode == SDL_SCANCODE_T)
-                // {
-                //     auto& updated_input_state = UIState.getMutableInputState();
-                //     updated_input_state.dirty = true;
-                //     updated_input_state.isCreatingParticleCluster = true ;
-                //     updated_input_state.selectedMass = MAX_MASS/100000.0;
-                //     updated_input_state.selectedRadius = 100.0;
-                //     break;
-                // }
+                else if (event.key.scancode == SDL_SCANCODE_0)
+                {
+                    gameState.invertPlayMusic();
+                }
+                else if (event.key.scancode == SDL_SCANCODE_MINUS)
+                {
+                    UIState.invertUIElementsVisibility();
+                }
+                else if (event.key.scancode == SDL_SCANCODE_EQUALS)
+                {
+                    gameState.invertToggleFast();
+                }
+                else if (event.key.scancode == SDL_SCANCODE_T)
+                {
+                    auto& updated_input_state = UIState.getMutableInputState();
+                    updated_input_state.dirty = true;
+                    updated_input_state.isCreatingParticleCluster = true ;
+                    updated_input_state.selectedMass = MAX_MASS;
+                    updated_input_state.selectedRadius = 100.0;
+                    break;
+                }
 
 
         }

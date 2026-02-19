@@ -22,7 +22,7 @@ struct InputState
     // Creation type flags
     bool isCreatingMacro = false;    
     bool isCreatingParticle = false;
-    // bool isCreatingParticleCluster = false;
+    bool isCreatingParticleCluster = false;
 
     // Creation subtype flags -- only one may be true
     // Need to be implemented and well-defined
@@ -54,7 +54,7 @@ struct InputState
         // Creation type flags
         isCreatingMacro = false;    
         isCreatingParticle = false;
-        // isCreatingParticleCluster = false;
+        isCreatingParticleCluster = false;
         
         // Creation subtype flags -- only one may be true
         // Need to be implemented and well-defined
